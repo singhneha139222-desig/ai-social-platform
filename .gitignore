@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.pyo
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Model cache
+models_cache/
+.cache/
+
+# Build
+frontend/dist/
+*.tgz
+
+# Testing
+coverage/
+.pytest_cache/
+htmlcov/
+
+# Docker
+docker-data/
