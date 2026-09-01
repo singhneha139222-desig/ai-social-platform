@@ -76,9 +76,7 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Indexes
-userSchema.index({ email: 1 }, { unique: true });
-userSchema.index({ username: 1 }, { unique: true });
+// Indexes (email and username already indexed via unique:true in schema)
 userSchema.index({ role: 1 });
 userSchema.index({ createdAt: -1 });
 

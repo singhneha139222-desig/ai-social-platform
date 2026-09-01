@@ -33,8 +33,16 @@ const interactionSchema = new mongoose.Schema(
 // Compound indexes for efficient queries
 interactionSchema.index({ user: 1, type: 1 });
 interactionSchema.index({ post: 1, type: 1 });
-interactionSchema.index({ user: 1, post: 1, type: 1 }, { unique: true, sparse: true });
-interactionSchema.index({ user: 1, targetUser: 1, type: 1 }, { unique: true, sparse: true });
+// Unique per user+post+type only when post exists (likes, comments, views)
+interactionSchema.index(
+  { user: 1, post: 1, type: 1 },
+  { unique: true, partialFilterExpression: { post: { $type: 'objectId' } } }
+);
+// Unique per user+targetUser+type only when targetUser exists (follows)
+interactionSchema.index(
+  { user: 1, targetUser: 1, type: 1 },
+  { unique: true, partialFilterExpression: { targetUser: { $type: 'objectId' } } }
+);
 interactionSchema.index({ targetUser: 1, type: 1 });
 interactionSchema.index({ createdAt: -1 });
 
