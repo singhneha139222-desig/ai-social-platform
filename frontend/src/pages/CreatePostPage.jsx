@@ -54,52 +54,41 @@ export default function CreatePostPage() {
   };
 
   return (
-    <div className="page-container">
+    <div className="feed-container">
       <div className="page-header">
         <h1>Create Post</h1>
-        <p>Share your thoughts with the community</p>
+        <p>Share your thoughts safely with the community.</p>
       </div>
 
-      <div className="card">
+      <div className="post-composer">
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <textarea
-              className="form-input form-textarea"
-              placeholder="What's on your mind?"
-              value={content}
-              onChange={(e) => { setContent(e.target.value); setResult(null); }}
-              maxLength={MAX_LENGTH}
-              style={{ minHeight: 160 }}
-              required
-              aria-label="Post content"
-            />
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
-              <span className="text-sm text-muted">
-                Posts are analyzed by AI for content safety
-              </span>
-              <span className={`text-sm ${content.length > MAX_LENGTH * 0.9 ? 'text-muted' : 'text-muted'}`}
-                style={{ color: content.length > MAX_LENGTH * 0.9 ? 'var(--warning)' : undefined }}>
-                {content.length}/{MAX_LENGTH}
-              </span>
-            </div>
+          <textarea
+            placeholder="What's on your mind?"
+            value={content}
+            onChange={(e) => { setContent(e.target.value); setResult(null); }}
+            maxLength={MAX_LENGTH}
+            required
+            aria-label="Post content"
+          />
+          
+          <div className="post-composer__footer">
+            <span className={`post-composer__chars ${content.length > MAX_LENGTH * 0.9 ? 'error' : ''}`}>
+              {content.length}/{MAX_LENGTH}
+            </span>
+            
+            <button className="btn btn--primary" disabled={loading || !content.trim()} type="submit">
+              {loading ? 'Analyzing...' : <><Send size={16} /> Publish Post</>}
+            </button>
           </div>
-
-          <button className="btn btn--primary btn--full" disabled={loading || !content.trim()} type="submit">
-            {loading ? (
-              <><div className="spinner" style={{ width: 18, height: 18 }} /> Analyzing &amp; posting...</>
-            ) : (
-              <><Send size={18} /> Publish Post</>
-            )}
-          </button>
         </form>
-
-        {result && (
-          <div className={`toast ${resultClass()}`} style={{ marginTop: 16, animation: 'none' }}>
-            {resultIcon()}
-            {result.message}
-          </div>
-        )}
       </div>
+      
+      {result && (
+        <div className={`toast ${resultClass()}`} style={{ animation: 'none' }}>
+          {resultIcon()}
+          {result.message}
+        </div>
+      )}
     </div>
   );
 }

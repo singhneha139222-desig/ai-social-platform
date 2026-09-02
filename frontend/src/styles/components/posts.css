@@ -1,0 +1,233 @@
+/* ============================================
+   Posts & Feed
+   ============================================ */
+
+.feed-container {
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+}
+
+.page-header {
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.page-header h1 {
+  font-size: 1.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.page-header p {
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+}
+
+/* ----------------------------------
+   Post Composer
+   ---------------------------------- */
+.post-composer {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  margin-bottom: 2rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.post-composer textarea {
+  width: 100%;
+  border: none;
+  background: transparent;
+  resize: none;
+  font-size: 1rem;
+  min-height: 80px;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.post-composer textarea:focus {
+  outline: none;
+}
+
+.post-composer textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.post-composer__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 1rem;
+}
+
+.post-composer__chars {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.post-composer__chars.error {
+  color: var(--error);
+}
+
+/* ----------------------------------
+   Post Card
+   ---------------------------------- */
+.post-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+  transition: border-color var(--transition-fast);
+}
+
+.post-card:hover {
+  border-color: var(--border-hover);
+}
+
+.post-card__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.post-card__meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.post-card__author {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.post-card__handle {
+  color: var(--text-muted);
+  font-weight: 400;
+  font-size: 0.875rem;
+}
+
+.post-card__time {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Subtle AI Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-full);
+}
+
+.badge--ai {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-default);
+}
+
+.badge--sentiment-positive {
+  background: var(--success-bg);
+  color: var(--success);
+}
+.badge--sentiment-neutral {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+.badge--sentiment-negative {
+  background: var(--error-bg);
+  color: var(--error);
+}
+
+.post-card__content {
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--text-primary);
+  margin-bottom: 1.25rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.post-card__actions {
+  display: flex;
+  gap: 1.5rem;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 0.75rem;
+}
+
+.action-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.action-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
+.action-btn.active {
+  color: var(--error); /* Red for like */
+}
+.action-btn.active:hover {
+  background: var(--error-bg);
+}
+
+/* ----------------------------------
+   Comments
+   ---------------------------------- */
+.comments-section {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.comment-item {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.comment-content {
+  background: var(--bg-tertiary);
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  flex: 1;
+}
+
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+}
+
+.comment-author {
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.comment-text {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+}

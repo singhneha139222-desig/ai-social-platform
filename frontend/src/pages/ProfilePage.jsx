@@ -21,9 +21,8 @@ export default function ProfilePage() {
     const fetchProfile = async () => {
       setLoading(true);
       try {
-        const [profileRes, postsRes] = await Promise.all([
-          userAPI.getProfile(username),
-          postAPI.getUserPosts(username).catch(() => ({ data: { data: { posts: [] } } })),
+        const [profileRes] = await Promise.all([
+          userAPI.getProfile(username)
         ]);
         setProfile(profileRes.data.data.user);
         setFollowing(profileRes.data.data.user.isFollowing || false);
@@ -31,7 +30,7 @@ export default function ProfilePage() {
         // getUserPosts expects userId, but we have username
         // Let's fetch posts using the user ID from profile
         const userId = profileRes.data.data.user._id;
-        const postsResult = await postAPI.getUserPosts(userId);
+        const postsResult = await postAPI.getUserPosts(userId).catch(() => ({ data: { data: { posts: [] } } }));
         setPosts(postsResult.data.data.posts || []);
       } catch (err) {
         toast.error('Failed to load profile');
@@ -66,59 +65,75 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="page-container">
-        <div className="profile-header">
-          <div className="skeleton" style={{ width: 80, height: 80, borderRadius: '50%', margin: '0 auto 16px' }} />
-          <div className="skeleton" style={{ width: 160, height: 20, margin: '0 auto 8px' }} />
-          <div className="skeleton" style={{ width: 120, height: 14, margin: '0 auto' }} />
+      <div className="feed-container">
+        <div className="profile-header" style={{ opacity: 0.5 }}>
+          Loading profile...
         </div>
       </div>
     );
   }
 
-  if (!profile) return <div className="page-container"><div className="empty-state"><div className="empty-state__title">User not found</div></div></div>;
+  if (!profile) {
+    return (
+      <div className="feed-container">
+        <div className="empty-state">
+          <h3>User not found</h3>
+          <p>The profile you are looking for does not exist.</p>
+        </div>
+      </div>
+    );
+  }
 
   const initial = profile.displayName?.[0] || profile.username?.[0] || '?';
 
   return (
-    <div className="page-container">
+    <div className="feed-container">
       <div className="profile-header">
-        <div className="avatar avatar--xl" style={{ margin: '0 auto 16px', fontSize: '2rem' }}>{initial}</div>
-        <h2 style={{ fontSize: '1.3rem', fontWeight: 700 }}>{profile.displayName || profile.username}</h2>
-        <p className="text-muted" style={{ fontSize: '0.9rem' }}>@{profile.username}</p>
-        {profile.bio && <p style={{ marginTop: 8, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{profile.bio}</p>}
-
-        <div className="profile-header__stats">
-          <div className="profile-header__stat">
-            <div className="profile-header__stat-value">{posts.length}</div>
-            <div className="profile-header__stat-label">Posts</div>
+        <div className="avatar avatar--xl">{initial}</div>
+        
+        <div className="profile-info">
+          <h2 className="profile-name">{profile.displayName || profile.username}</h2>
+          <p className="profile-handle">@{profile.username}</p>
+          
+          <div className="profile-stats">
+            <div className="stat-item">
+              <span className="stat-value">{posts.length}</span>
+              <span className="stat-label">Posts</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-value">{profile.followersCount || 0}</span>
+              <span className="stat-label">Followers</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-value">{profile.followingCount || 0}</span>
+              <span className="stat-label">Following</span>
+            </div>
           </div>
-          <div className="profile-header__stat">
-            <div className="profile-header__stat-value">{profile.followersCount || 0}</div>
-            <div className="profile-header__stat-label">Followers</div>
-          </div>
-          <div className="profile-header__stat">
-            <div className="profile-header__stat-value">{profile.followingCount || 0}</div>
-            <div className="profile-header__stat-label">Following</div>
-          </div>
+          
+          {profile.bio && <p style={{ marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>{profile.bio}</p>}
+          
+          {!isOwnProfile && (
+            <div className="profile-actions">
+              <button
+                className={`btn ${following ? 'btn--secondary' : 'btn--primary'}`}
+                onClick={handleFollow}
+              >
+                {following ? <><UserMinus size={16} /> Unfollow</> : <><UserPlus size={16} /> Follow</>}
+              </button>
+            </div>
+          )}
         </div>
-
-        {!isOwnProfile && (
-          <button
-            className={`btn ${following ? 'btn--secondary' : 'btn--primary'}`}
-            style={{ marginTop: 16 }}
-            onClick={handleFollow}
-          >
-            {following ? <><UserMinus size={16} /> Unfollow</> : <><UserPlus size={16} /> Follow</>}
-          </button>
-        )}
       </div>
 
-      <div className="page-header"><h2 style={{ fontSize: '1.1rem' }}>Posts</h2></div>
+      <div className="page-header">
+        <h2>Posts</h2>
+      </div>
+      
       <div className="feed-list">
         {posts.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-state__title">No posts yet</div>
+            <h3>No posts yet</h3>
+            <p>This user hasn't posted anything.</p>
           </div>
         ) : (
           posts.map((post) => (

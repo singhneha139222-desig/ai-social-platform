@@ -1,0 +1,15 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@import './tokens.css';
+@import './globals.css';
+
+/* Components to be added next */
+@import './components/layout.css';
+@import './components/auth.css';
+@import './components/forms.css';
+@import './components/buttons.css';
+@import './components/posts.css';
+@import './components/profile.css';
+@import './components/toast.css';
+@import './components/admin.css';
+@import './components/notifications.css';

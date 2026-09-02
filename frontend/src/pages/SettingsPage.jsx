@@ -26,13 +26,13 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="page-container">
+    <div className="feed-container">
       <div className="page-header">
         <h1>Settings</h1>
-        <p>Manage your profile</p>
+        <p>Manage your profile and account preferences.</p>
       </div>
 
-      <div className="card">
+      <div className="post-card">
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label className="form-label" htmlFor="set-display">Display Name</label>
@@ -41,10 +41,10 @@ export default function SettingsPage() {
           </div>
           <div className="form-group">
             <label className="form-label" htmlFor="set-bio">Bio</label>
-            <textarea id="set-bio" className="form-input form-textarea" value={form.bio}
+            <textarea id="set-bio" className="form-input" value={form.bio}
               onChange={(e) => setForm({ ...form, bio: e.target.value })} maxLength={500}
               placeholder="Tell us about yourself..." />
-            <div className="text-sm text-muted mt-sm">{form.bio.length}/500</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem', textAlign: 'right' }}>{form.bio.length}/500</div>
           </div>
           <button className="btn btn--primary" disabled={loading} type="submit">
             {loading ? 'Saving...' : 'Save Changes'}
@@ -52,11 +52,11 @@ export default function SettingsPage() {
         </form>
       </div>
 
-      <div className="card mt-lg">
-        <h3 style={{ marginBottom: 12 }}>Account Info</h3>
-        <p className="text-sm"><strong>Username:</strong> @{user?.username}</p>
-        <p className="text-sm mt-sm"><strong>Email:</strong> {user?.email}</p>
-        <p className="text-sm mt-sm"><strong>Role:</strong> {user?.role}</p>
+      <div className="post-card" style={{ marginTop: '2rem' }}>
+        <h3 style={{ marginBottom: '1rem', fontWeight: 600 }}>Account Info</h3>
+        <p style={{ fontSize: '0.9375rem', marginBottom: '0.5rem' }}><strong>Username:</strong> @{user?.username}</p>
+        <p style={{ fontSize: '0.9375rem', marginBottom: '0.5rem' }}><strong>Email:</strong> {user?.email}</p>
+        <p style={{ fontSize: '0.9375rem' }}><strong>Role:</strong> <span className="badge badge--ai">{user?.role}</span></p>
       </div>
     </div>
   );

@@ -25,7 +25,7 @@ export default function ExplorePage() {
   }, [page]);
 
   return (
-    <div className="page-container">
+    <div className="feed-container">
       <div className="page-header">
         <h1>Explore</h1>
         <p>Discover new content and people</p>

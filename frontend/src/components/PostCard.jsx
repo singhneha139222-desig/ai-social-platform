@@ -94,7 +94,17 @@ export default function PostCard({ post, onDelete, onLikeToggle }) {
       pending: 'Pending Review', flagged: 'Under Review', rejected: 'Rejected',
       removed: 'Removed', rejected_by_admin: 'Rejected by Admin',
     };
-    return <span className={`mod-badge mod-badge--${map[status] || 'pending'}`}>{label[status] || status}</span>;
+    // Use badge styling from posts.css
+    return <span className="badge badge--ai" style={{ marginLeft: 'auto' }}>{label[status] || status}</span>;
+  };
+
+  const sentimentBadge = () => {
+    if (!post.sentiment || post.sentiment === 'neutral') return null;
+    return (
+      <span className={`badge badge--sentiment-${post.sentiment}`} style={{ marginLeft: 'auto' }}>
+        {post.sentiment}
+      </span>
+    );
   };
 
   return (
@@ -103,22 +113,18 @@ export default function PostCard({ post, onDelete, onLikeToggle }) {
         <div className="avatar avatar--md" onClick={() => navigate(`/profile/${post.author?.username}`)} style={{ cursor: 'pointer' }}>
           {initial}
         </div>
-        <div className="post-card__author-info">
-          <div
-            className="post-card__author-name"
-            onClick={() => navigate(`/profile/${post.author?.username}`)}
-            style={{ cursor: 'pointer' }}
-          >
+        <div className="post-card__meta">
+          <div className="post-card__author" onClick={() => navigate(`/profile/${post.author?.username}`)} style={{ cursor: 'pointer' }}>
             {post.author?.displayName || post.author?.username}
-            <span style={{ color: 'var(--text-muted)', fontWeight: 400, marginLeft: 6, fontSize: '0.85rem' }}>
-              @{post.author?.username}
-            </span>
+            <span className="post-card__handle">@{post.author?.username}</span>
           </div>
-          <div className="post-card__timestamp">
+          <div className="post-card__time">
             {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
           </div>
         </div>
+        
         {moderationBadge()}
+
         {(isAuthor || user?.role === 'admin') && (
           <button className="btn btn--ghost btn--icon" onClick={handleDelete} title="Delete post">
             <Trash2 size={16} />
@@ -128,30 +134,23 @@ export default function PostCard({ post, onDelete, onLikeToggle }) {
 
       <div className="post-card__content">{post.content}</div>
 
-      <div className="post-card__footer">
-        <button
-          className={`post-card__action ${liked ? 'post-card__action--liked' : ''}`}
-          onClick={handleLike}
-        >
+      <div className="post-card__actions">
+        <button className={`action-btn ${liked ? 'active' : ''}`} onClick={handleLike}>
           <Heart size={18} fill={liked ? 'currentColor' : 'none'} />
           {likesCount}
         </button>
 
-        <button className="post-card__action" onClick={toggleComments}>
+        <button className="action-btn" onClick={toggleComments}>
           <MessageCircle size={18} />
           {post.commentsCount || 0}
         </button>
-
-        {post.sentiment && (
-          <span className={`post-card__sentiment post-card__sentiment--${post.sentiment}`}>
-            {post.sentiment}
-          </span>
-        )}
+        
+        {sentimentBadge()}
       </div>
 
       {showComments && (
         <div className="comments-section">
-          <form onSubmit={handleComment} style={{ display: 'flex', gap: 8, marginBottom: 12, marginTop: 12 }}>
+          <form onSubmit={handleComment} style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
             <input
               className="form-input"
               placeholder="Write a comment..."
@@ -159,7 +158,7 @@ export default function PostCard({ post, onDelete, onLikeToggle }) {
               onChange={(e) => setCommentText(e.target.value)}
               maxLength={1000}
             />
-            <button className="btn btn--primary btn--sm" disabled={loadingComment || !commentText.trim()}>
+            <button className="btn btn--primary" disabled={loadingComment || !commentText.trim()}>
               {loadingComment ? '...' : 'Post'}
             </button>
           </form>
@@ -168,30 +167,16 @@ export default function PostCard({ post, onDelete, onLikeToggle }) {
               <div className="avatar avatar--sm">
                 {c.author?.displayName?.[0] || c.author?.username?.[0] || '?'}
               </div>
-              <div className="comment-item__content">
-                <span className="comment-item__author">
-                  {c.author?.displayName || c.author?.username}
-                </span>
-                <div className="comment-item__text">{c.content}</div>
-                <div className="comment-item__time">
-                  {formatDistanceToNow(new Date(c.createdAt), { addSuffix: true })}
+              <div className="comment-content">
+                <div className="comment-header">
+                  <span className="comment-author">{c.author?.displayName || c.author?.username}</span>
+                  <span className="post-card__time">{formatDistanceToNow(new Date(c.createdAt), { addSuffix: true })}</span>
                 </div>
-                {c.replies?.map((r) => (
-                  <div key={r._id} className="comment-item" style={{ marginLeft: 20, marginTop: 8 }}>
-                    <div className="avatar avatar--sm">
-                      {r.author?.displayName?.[0] || r.author?.username?.[0] || '?'}
-                    </div>
-                    <div className="comment-item__content">
-                      <span className="comment-item__author">{r.author?.displayName || r.author?.username}</span>
-                      <div className="comment-item__text">{r.content}</div>
-                      <div className="comment-item__time">{formatDistanceToNow(new Date(r.createdAt), { addSuffix: true })}</div>
-                    </div>
-                  </div>
-                ))}
+                <div className="comment-text">{c.content}</div>
               </div>
             </div>
           ))}
-          {comments.length === 0 && <div className="text-muted text-sm text-center" style={{ padding: 12 }}>No comments yet</div>}
+          {comments.length === 0 && <div className="text-muted text-sm" style={{ textAlign: 'center', padding: '1rem' }}>No comments yet. Be the first to comment.</div>}
         </div>
       )}
     </div>

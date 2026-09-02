@@ -27,28 +27,46 @@ export default function LoginPage() {
 
   return (
     <div className="auth-page">
-      <div className="auth-card">
-        <div className="auth-card__logo">
-          <h1>AI Social</h1>
-          <p>Sign in to your account</p>
+      <div className="auth-split">
+        {/* Left Branding Panel */}
+        <div className="auth-brand">
+          <div className="shape-1"></div>
+          <div className="shape-2"></div>
+          <div className="auth-brand__content">
+            <div className="auth-brand__logo">AI Social</div>
+            <h1 className="auth-brand__title">Connect.<br/>Discover.<br/>Share safely.</h1>
+            <p className="auth-brand__subtitle">A smarter, safer social experience powered by AI.</p>
+          </div>
         </div>
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label className="form-label" htmlFor="email">Email</label>
-            <input id="email" className="form-input" type="email" placeholder="you@example.com"
-              value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
+        
+        {/* Right Form Panel */}
+        <div className="auth-form-container">
+          <div className="auth-card">
+            <div className="auth-card__header">
+              <h1>Log in</h1>
+              <p>Welcome back! Please enter your details.</p>
+            </div>
+            
+            <form onSubmit={handleSubmit}>
+              <div className="form-group">
+                <label className="form-label" htmlFor="email">Email</label>
+                <input id="email" className="form-input" type="email" placeholder="you@example.com"
+                  value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
+              </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="password">Password</label>
+                <input id="password" className="form-input" type="password" placeholder="••••••••"
+                  value={password} onChange={(e) => setPassword(e.target.value)} required />
+              </div>
+              <button className="btn btn--primary btn--full" disabled={loading} type="submit" style={{marginTop: '1rem'}}>
+                {loading ? 'Signing in...' : 'Log in'}
+              </button>
+            </form>
+            
+            <div className="auth-card__footer">
+              Don&apos;t have an account? <Link to="/register">Sign up</Link>
+            </div>
           </div>
-          <div className="form-group">
-            <label className="form-label" htmlFor="password">Password</label>
-            <input id="password" className="form-input" type="password" placeholder="••••••"
-              value={password} onChange={(e) => setPassword(e.target.value)} required />
-          </div>
-          <button className="btn btn--primary btn--full" disabled={loading} type="submit">
-            {loading ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
-        <div className="auth-card__footer">
-          Don&apos;t have an account? <Link to="/register">Sign up</Link>
         </div>
       </div>
     </div>

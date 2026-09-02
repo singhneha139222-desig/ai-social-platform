@@ -31,7 +31,7 @@ export default function FeedPage() {
 
   if (loading) {
     return (
-      <div className="page-container">
+      <div className="feed-container">
         <div className="page-header"><h1>Home</h1></div>
         <div className="feed-list">
           {[1, 2, 3].map((i) => (
@@ -47,7 +47,7 @@ export default function FeedPage() {
   }
 
   return (
-    <div className="page-container">
+    <div className="feed-container">
       <div className="page-header">
         <h1>Home</h1>
         <p>Your personalized feed</p>

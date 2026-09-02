@@ -19,11 +19,8 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="page-container page-container--wide">
-        <div className="page-header"><h1>Admin Dashboard</h1></div>
-        <div className="stats-grid">
-          {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="stat-card"><div className="skeleton" style={{ height: 60 }} /></div>)}
-        </div>
+      <div className="feed-container">
+        <div className="page-header" style={{ opacity: 0.5 }}><h1>Admin Dashboard</h1></div>
       </div>
     );
   }
@@ -31,92 +28,100 @@ export default function AdminDashboard() {
   const s = stats?.stats || {};
 
   return (
-    <div className="page-container page-container--wide">
+    <div className="feed-container" style={{ maxWidth: '900px' }}>
       <div className="page-header">
         <h1>Admin Dashboard</h1>
-        <p>Platform overview and moderation</p>
+        <p>Platform overview and moderation.</p>
       </div>
 
-      <div className="stats-grid">
+      <div className="admin-stats">
         <div className="stat-card">
-          <Users size={24} style={{ color: 'var(--text-muted)', marginBottom: 8 }} />
+          <div className="stat-card__title">Total Users</div>
           <div className="stat-card__value">{s.totalUsers || 0}</div>
-          <div className="stat-card__label">Total Users</div>
+          <Users size={24} style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }} />
         </div>
         <div className="stat-card">
-          <FileText size={24} style={{ color: 'var(--text-muted)', marginBottom: 8 }} />
+          <div className="stat-card__title">Total Posts</div>
           <div className="stat-card__value">{s.totalPosts || 0}</div>
-          <div className="stat-card__label">Total Posts</div>
+          <FileText size={24} style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }} />
         </div>
         <div className="stat-card">
-          <CheckCircle size={24} style={{ color: 'var(--success)', marginBottom: 8 }} />
+          <div className="stat-card__title">Published</div>
           <div className="stat-card__value">{s.publishedPosts || 0}</div>
-          <div className="stat-card__label">Published</div>
+          <CheckCircle size={24} style={{ color: 'var(--success)', marginTop: '0.5rem' }} />
         </div>
         <div className="stat-card">
-          <AlertTriangle size={24} style={{ color: 'var(--warning)', marginBottom: 8 }} />
+          <div className="stat-card__title">Flagged</div>
           <div className="stat-card__value">{s.flaggedPosts || 0}</div>
-          <div className="stat-card__label">Flagged</div>
+          <AlertTriangle size={24} style={{ color: 'var(--warning)', marginTop: '0.5rem' }} />
         </div>
-        <div className="stat-card">
-          <XCircle size={24} style={{ color: 'var(--error)', marginBottom: 8 }} />
+        <div className="stat-card stat-card--danger">
+          <div className="stat-card__title">Rejected</div>
           <div className="stat-card__value">{s.rejectedPosts || 0}</div>
-          <div className="stat-card__label">Rejected</div>
+          <XCircle size={24} style={{ color: 'var(--error)', marginTop: '0.5rem' }} />
         </div>
         <div className="stat-card">
-          <BarChart3 size={24} style={{ color: 'var(--text-muted)', marginBottom: 8 }} />
+          <div className="stat-card__title">Comments</div>
           <div className="stat-card__value">{s.totalComments || 0}</div>
-          <div className="stat-card__label">Comments</div>
+          <BarChart3 size={24} style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }} />
         </div>
       </div>
 
       {stats?.stats?.sentimentDistribution && (
-        <div className="card mb-lg">
-          <h3 style={{ marginBottom: 16 }}>Sentiment Distribution</h3>
-          <div className="flex gap-lg">
+        <div className="post-card" style={{ marginBottom: '2rem' }}>
+          <h3 style={{ marginBottom: '1rem', fontWeight: 600 }}>Sentiment Distribution</h3>
+          <div style={{ display: 'flex', gap: '1rem' }}>
             {Object.entries(stats.stats.sentimentDistribution).map(([label, count]) => (
-              <div key={label} className="flex items-center gap-sm">
-                <span className={`post-card__sentiment post-card__sentiment--${label}`}>{label}</span>
-                <span className="font-semibold">{count}</span>
+              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span className={`badge badge--sentiment-${label}`}>{label}</span>
+                <span style={{ fontWeight: 600 }}>{count}</span>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      <div className="card">
-        <div className="flex justify-between items-center mb-md">
-          <h3>Moderation Queue</h3>
-          <button className="btn btn--primary btn--sm" onClick={() => navigate('/admin/moderation')}>
-            View All Flagged Content
+      <div className="post-card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <h3 style={{ fontWeight: 600 }}>Recent Moderation Activity</h3>
+          <button className="btn btn--primary" onClick={() => navigate('/admin/moderation')}>
+            View Moderation Queue
           </button>
         </div>
 
         {stats?.recentModerationLogs?.length > 0 ? (
-          <table className="mod-table">
-            <thead>
-              <tr>
-                <th>Type</th>
-                <th>Decision</th>
-                <th>Score</th>
-                <th>Source</th>
-                <th>Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stats.recentModerationLogs.map((log) => (
-                <tr key={log._id}>
-                  <td>{log.contentType}</td>
-                  <td><span className={`mod-badge mod-badge--${log.decision === 'publish' ? 'published' : log.decision === 'flag' ? 'flagged' : 'rejected'}`}>{log.decision}</span></td>
-                  <td>{log.toxicityScore != null ? log.toxicityScore.toFixed(4) : 'N/A'}</td>
-                  <td>{log.source}</td>
-                  <td className="text-sm text-muted">{new Date(log.createdAt).toLocaleString()}</td>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                  <th style={{ padding: '0.75rem 0.5rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Type</th>
+                  <th style={{ padding: '0.75rem 0.5rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Decision</th>
+                  <th style={{ padding: '0.75rem 0.5rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Score</th>
+                  <th style={{ padding: '0.75rem 0.5rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Source</th>
+                  <th style={{ padding: '0.75rem 0.5rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Time</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {stats.recentModerationLogs.map((log) => (
+                  <tr key={log._id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                    <td style={{ padding: '0.75rem 0.5rem' }}>{log.contentType}</td>
+                    <td style={{ padding: '0.75rem 0.5rem' }}>
+                      <span className="badge badge--ai">{log.decision}</span>
+                    </td>
+                    <td style={{ padding: '0.75rem 0.5rem' }}>{log.toxicityScore != null ? log.toxicityScore.toFixed(4) : 'N/A'}</td>
+                    <td style={{ padding: '0.75rem 0.5rem' }}>{log.source}</td>
+                    <td style={{ padding: '0.75rem 0.5rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                      {new Date(log.createdAt).toLocaleString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
-          <p className="text-muted">No recent moderation activity</p>
+          <div className="empty-state">
+            <p>No recent moderation activity</p>
+          </div>
         )}
       </div>
     </div>

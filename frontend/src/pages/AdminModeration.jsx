@@ -56,46 +56,46 @@ export default function AdminModeration() {
   };
 
   return (
-    <div className="page-container page-container--wide">
+    <div className="feed-container" style={{ maxWidth: '1000px' }}>
       <div className="page-header">
         <h1>Content Moderation</h1>
         <p>Review flagged and pending content</p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 1fr' : '1fr', gap: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 1fr' : '1fr', gap: '2rem' }}>
         {/* Queue */}
         <div>
           {loading ? (
-            <div className="card"><div className="skeleton" style={{ height: 200 }} /></div>
+            <div className="mod-card"><div className="skeleton" style={{ height: 200 }} /></div>
           ) : items.length === 0 ? (
-            <div className="card">
+            <div className="mod-card">
               <div className="empty-state">
-                <div className="empty-state__icon"><CheckCircle size={48} /></div>
-                <div className="empty-state__title">Queue is clear</div>
-                <div className="empty-state__text">No flagged content to review</div>
+                <CheckCircle size={48} style={{ color: 'var(--success)' }} />
+                <h3>Queue is clear</h3>
+                <p>No flagged content to review</p>
               </div>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {items.map((item) => (
-                <div key={item._id} className="card" style={{ cursor: 'pointer', border: selected?._id === item._id ? '1px solid var(--accent-start)' : undefined }}
+                <div key={item._id} className="mod-card" style={{ cursor: 'pointer', border: selected?._id === item._id ? '2px solid var(--accent-primary)' : undefined, marginBottom: 0 }}
                   onClick={() => viewDetail(item)}>
-                  <div className="flex items-center gap-sm mb-md">
-                    <div className="avatar avatar--sm">{item.author?.username?.[0] || '?'}</div>
-                    <div>
-                      <div className="font-semibold text-sm">{item.author?.displayName || item.author?.username}</div>
-                      <div className="text-sm text-muted">{formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}</div>
+                  <div className="mod-card__header">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <div className="avatar avatar--sm">{item.author?.username?.[0] || '?'}</div>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{item.author?.displayName || item.author?.username}</div>
+                        <div className="mod-card__meta">{formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}</div>
+                      </div>
                     </div>
-                    <span className={`mod-badge mod-badge--${item.moderationStatus === 'flagged' ? 'flagged' : 'pending'}`} style={{ marginLeft: 'auto' }}>
-                      {item.moderationStatus}
-                    </span>
+                    <span className="badge badge--ai">{item.moderationStatus}</span>
                   </div>
-                  <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  <div className="mod-card__content" style={{ borderLeft: 'none', background: 'none', padding: 0 }}>
                     {item.content?.substring(0, 120)}{item.content?.length > 120 ? '...' : ''}
-                  </p>
+                  </div>
                   {item.toxicityScore != null && (
-                    <div className="text-sm text-muted mt-sm flex items-center gap-sm">
-                      <AlertTriangle size={14} />
+                    <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--warning)', fontWeight: 600 }}>
+                      <AlertTriangle size={16} />
                       Toxicity: {(item.toxicityScore * 100).toFixed(1)}%
                     </div>
                   )}
@@ -107,56 +107,54 @@ export default function AdminModeration() {
 
         {/* Detail Panel */}
         {selected && (
-          <div className="card" style={{ position: 'sticky', top: 'calc(var(--navbar-height) + 24px)', alignSelf: 'start' }}>
-            <h3 style={{ marginBottom: 16 }}>Content Review</h3>
+          <div className="mod-card" style={{ position: 'sticky', top: '2rem', alignSelf: 'start', margin: 0 }}>
+            <h3 style={{ marginBottom: '1.5rem', fontWeight: 600 }}>Content Review</h3>
 
-            <div className="mb-md">
-              <div className="text-sm text-muted mb-sm">Author</div>
-              <div className="font-semibold">{selected.author?.displayName || selected.author?.username} (@{selected.author?.username})</div>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <div className="mod-card__meta" style={{ marginBottom: '0.25rem' }}>Author</div>
+              <div style={{ fontWeight: 600 }}>{selected.author?.displayName || selected.author?.username} (@{selected.author?.username})</div>
             </div>
 
-            <div className="mb-md">
-              <div className="text-sm text-muted mb-sm">Content</div>
-              <div style={{ padding: 12, background: 'var(--bg-input)', borderRadius: 'var(--radius-sm)', fontSize: '0.9rem', lineHeight: 1.6 }}>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <div className="mod-card__meta" style={{ marginBottom: '0.25rem' }}>Content</div>
+              <div className="mod-card__content">
                 {selected.content}
               </div>
             </div>
 
-            <div className="mb-md">
-              <div className="text-sm text-muted mb-sm">Toxicity Score</div>
-              <div className="font-semibold" style={{ color: selected.toxicityScore > 0.90 ? 'var(--error)' : selected.toxicityScore > 0.70 ? 'var(--warning)' : 'var(--success)' }}>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <div className="mod-card__meta" style={{ marginBottom: '0.25rem' }}>Toxicity Score</div>
+              <div style={{ fontWeight: 700, fontSize: '1.25rem', color: selected.toxicityScore > 0.90 ? 'var(--error)' : selected.toxicityScore > 0.70 ? 'var(--warning)' : 'var(--success)' }}>
                 {selected.toxicityScore != null ? `${(selected.toxicityScore * 100).toFixed(2)}%` : 'N/A'}
               </div>
             </div>
 
             {selected.toxicityCategories && Object.keys(selected.toxicityCategories).length > 0 && (
-              <div className="mb-md">
-                <div className="text-sm text-muted mb-sm">Category Scores</div>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <div className="mod-card__meta" style={{ marginBottom: '0.5rem' }}>Category Scores</div>
                 {Object.entries(typeof selected.toxicityCategories.toJSON === 'function' ? selected.toxicityCategories.toJSON() : selected.toxicityCategories).map(([cat, score]) => (
-                  <div key={cat} className="flex justify-between text-sm" style={{ padding: '4px 0' }}>
+                  <div key={cat} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', padding: '0.25rem 0' }}>
                     <span>{cat}</span>
-                    <span style={{ color: score > 0.5 ? 'var(--error)' : 'var(--text-muted)' }}>{(score * 100).toFixed(1)}%</span>
+                    <span style={{ fontWeight: 600, color: score > 0.5 ? 'var(--error)' : 'var(--text-muted)' }}>{(score * 100).toFixed(1)}%</span>
                   </div>
                 ))}
               </div>
             )}
 
             {detail?.logs?.length > 0 && (
-              <div className="mb-md">
-                <div className="text-sm text-muted mb-sm">Moderation History</div>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <div className="mod-card__meta" style={{ marginBottom: '0.5rem' }}>Moderation History</div>
                 {detail.logs.map((log) => (
-                  <div key={log._id} className="text-sm" style={{ padding: '4px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-                    <span className={`mod-badge mod-badge--${log.decision === 'publish' ? 'published' : log.decision === 'flag' ? 'flagged' : 'rejected'}`}>
-                      {log.decision}
-                    </span>
-                    <span className="text-muted" style={{ marginLeft: 8 }}>{log.source} — {new Date(log.createdAt).toLocaleString()}</span>
+                  <div key={log._id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', padding: '0.25rem 0', borderBottom: '1px solid var(--border-subtle)' }}>
+                    <span className="badge badge--ai">{log.decision}</span>
+                    <span style={{ color: 'var(--text-muted)' }}>{log.source} — {new Date(log.createdAt).toLocaleString()}</span>
                   </div>
                 ))}
               </div>
             )}
 
-            <div className="flex gap-sm mt-lg">
-              <button className="btn btn--success" onClick={() => handleApprove(selected._id)} disabled={actionLoading} style={{ flex: 1 }}>
+            <div className="mod-card__actions" style={{ marginTop: '2rem' }}>
+              <button className="btn btn--primary" onClick={() => handleApprove(selected._id)} disabled={actionLoading} style={{ flex: 1, backgroundColor: 'var(--success)' }}>
                 <CheckCircle size={16} /> Approve
               </button>
               <button className="btn btn--danger" onClick={() => handleReject(selected._id)} disabled={actionLoading} style={{ flex: 1 }}>

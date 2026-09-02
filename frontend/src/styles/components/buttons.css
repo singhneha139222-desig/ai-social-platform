@@ -1,0 +1,73 @@
+/* ============================================
+   Buttons
+   ============================================ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  transition: all var(--transition-fast);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  background-color: var(--accent-primary);
+  color: #fff;
+}
+
+.btn--primary:hover:not(:disabled) {
+  background-color: var(--accent-primary-hover);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn--secondary {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: var(--border-default);
+}
+
+.btn--secondary:hover:not(:disabled) {
+  background-color: var(--border-subtle);
+  border-color: var(--border-hover);
+}
+
+.btn--danger {
+  background-color: var(--error-bg);
+  color: var(--error);
+}
+
+.btn--danger:hover:not(:disabled) {
+  background-color: var(--error);
+  color: #fff;
+}
+
+.btn--ghost {
+  background-color: transparent;
+  color: var(--text-secondary);
+}
+
+.btn--ghost:hover:not(:disabled) {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.btn--icon {
+  padding: 0.5rem;
+  border-radius: var(--radius-full);
+}
+
+.btn--full {
+  width: 100%;
+}
