@@ -5,6 +5,10 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import PostCard from '../components/PostCard';
 import { UserPlus, UserMinus } from 'lucide-react';
+import UserListModal from '../components/UserListModal';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
+const BASE_URL = API_URL.replace('/api/v1', '');
 
 export default function ProfilePage() {
   const { username } = useParams();
@@ -14,6 +18,9 @@ export default function ProfilePage() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [following, setFollowing] = useState(false);
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalType, setModalType] = useState('followers'); // 'followers' or 'following'
 
   const isOwnProfile = currentUser?.username === username;
 
@@ -63,6 +70,23 @@ export default function ProfilePage() {
     setPosts((prev) => prev.filter((p) => p._id !== postId));
   };
 
+  const handleOpenFollowers = () => {
+    setModalType('followers');
+    setModalOpen(true);
+  };
+
+  const handleOpenFollowing = () => {
+    setModalType('following');
+    setModalOpen(true);
+  };
+
+  const fetchUsersList = () => {
+    if (modalType === 'followers') {
+      return userAPI.getFollowers(username);
+    }
+    return userAPI.getFollowing(username);
+  };
+
   if (loading) {
     return (
       <div className="feed-container">
@@ -89,7 +113,11 @@ export default function ProfilePage() {
   return (
     <div className="feed-container">
       <div className="profile-header">
-        <div className="avatar avatar--xl">{initial}</div>
+        {profile.avatar ? (
+          <img src={`${BASE_URL}${profile.avatar}`} alt="Avatar" className="avatar-img avatar--xl" />
+        ) : (
+          <div className="avatar avatar--xl">{initial}</div>
+        )}
         
         <div className="profile-info">
           <h2 className="profile-name">{profile.displayName || profile.username}</h2>
@@ -100,11 +128,11 @@ export default function ProfilePage() {
               <span className="stat-value">{posts.length}</span>
               <span className="stat-label">Posts</span>
             </div>
-            <div className="stat-item">
+            <div className="stat-item" onClick={handleOpenFollowers} style={{ cursor: 'pointer' }}>
               <span className="stat-value">{profile.followersCount || 0}</span>
               <span className="stat-label">Followers</span>
             </div>
-            <div className="stat-item">
+            <div className="stat-item" onClick={handleOpenFollowing} style={{ cursor: 'pointer' }}>
               <span className="stat-value">{profile.followingCount || 0}</span>
               <span className="stat-label">Following</span>
             </div>
@@ -141,6 +169,13 @@ export default function ProfilePage() {
           ))
         )}
       </div>
+      
+      <UserListModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={modalType === 'followers' ? 'Followers' : 'Following'}
+        fetchUsers={fetchUsersList}
+      />
     </div>
   );
 }

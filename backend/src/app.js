@@ -18,11 +18,15 @@ const adminRoutes = require('./routes/admin');
 const app = express();
 
 // Security middleware
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: false })); // allow images to be loaded
 app.use(cors({
   origin: config.clientUrl,
   credentials: true,
 }));
+
+// Serve static uploads
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Body parsing with size limits
 app.use(express.json({ limit: '10mb' }));

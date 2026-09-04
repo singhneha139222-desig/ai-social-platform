@@ -17,7 +17,7 @@
 
 @media (min-width: 768px) {
   .main-content {
-    margin-left: var(--sidebar-width);
+    margin-left: 80px;
     padding: 2rem;
   }
 }
@@ -47,6 +47,26 @@
 @media (min-width: 768px) {
   .sidebar {
     transform: translateX(0);
+    width: 80px;
+    transition: width var(--transition-normal), transform var(--transition-normal);
+    overflow-x: hidden;
+  }
+  
+  .sidebar:hover {
+    width: var(--sidebar-width);
+  }
+
+  .sidebar__link-text,
+  .sidebar__logo-text,
+  .sidebar__badge {
+    white-space: nowrap;
+  }
+
+  .sidebar:not(:hover) .sidebar__link-text,
+  .sidebar:not(:hover) .sidebar__logo-text,
+  .sidebar:not(:hover) .sidebar__badge,
+  .sidebar:not(:hover) .sidebar__user-info {
+    display: none;
   }
 }
 
@@ -68,6 +88,7 @@
   justify-content: center;
   font-weight: 800;
   font-size: 0.875rem;
+  flex-shrink: 0;
 }
 
 .sidebar__logo-text {
@@ -97,6 +118,10 @@
   font-size: 0.9375rem;
   transition: all var(--transition-fast);
   text-decoration: none;
+}
+
+.sidebar__link svg {
+  flex-shrink: 0;
 }
 
 .sidebar__link:hover {
@@ -193,4 +218,50 @@
 .overlay--visible {
   opacity: 1;
   pointer-events: auto;
+}
+
+/* ----------------------------------
+   More Menu Popover
+   ---------------------------------- */
+.more-menu-popover {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  width: 100%;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.more-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-weight: 500;
+  font-size: 0.9375rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.more-menu-item:hover {
+  background-color: var(--bg-secondary);
+}
+
+.more-menu-divider {
+  height: 1px;
+  background-color: var(--border-subtle);
+  margin: 0.25rem 0;
 }

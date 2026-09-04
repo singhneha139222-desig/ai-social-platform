@@ -14,27 +14,61 @@ function generateToken(userId) {
 }
 
 /**
+ * Normalize a phone number to standard format (digits only, optionally keeping +)
+ */
+function normalizePhone(phone) {
+  if (!phone) return null;
+  // Keep '+' if it's the first character, otherwise strip all non-digits
+  const isPlus = phone.trim().startsWith('+');
+  const digitsOnly = phone.replace(/\D/g, '');
+  if (!digitsOnly) return null;
+  return isPlus ? `+${digitsOnly}` : digitsOnly;
+}
+
+/**
+ * Helper to determine if a string is an email
+ */
+function isEmail(str) {
+  return str.includes('@');
+}
+
+/**
  * POST /api/v1/auth/register
  */
 async function register(req, res, next) {
   try {
-    const { username, email, password, displayName } = req.body;
+    const { username, contact, password, displayName, dateOfBirth } = req.body;
+
+    let email = null;
+    let phone = null;
+
+    if (isEmail(contact)) {
+      email = contact.toLowerCase();
+    } else {
+      phone = normalizePhone(contact);
+      if (!phone) {
+        return ApiResponse.badRequest(res, 'Invalid mobile number format');
+      }
+    }
 
     // Check existing
-    const existingUser = await User.findOne({
-      $or: [{ email: email.toLowerCase() }, { username }],
-    });
+    const queryConds = [{ username }];
+    if (email) queryConds.push({ email });
+    if (phone) queryConds.push({ phone });
+
+    const existingUser = await User.findOne({ $or: queryConds });
 
     if (existingUser) {
-      const field = existingUser.email === email.toLowerCase() ? 'Email' : 'Username';
-      return ApiResponse.conflict(res, `${field} already exists`, 'DUPLICATE_USER');
+      return ApiResponse.conflict(res, 'An account with this email, mobile number, or username already exists.', 'DUPLICATE_USER');
     }
 
     const user = await User.create({
       username,
-      email: email.toLowerCase(),
+      email,
+      phone,
       passwordHash: password, // hashed by pre-save hook
       displayName: displayName || username,
+      dateOfBirth,
     });
 
     const token = generateToken(user._id);
@@ -47,6 +81,7 @@ async function register(req, res, next) {
         id: user._id,
         username: user.username,
         email: user.email,
+        phone: user.phone,
         displayName: user.displayName,
         role: user.role,
         avatar: user.avatar,
@@ -62,16 +97,33 @@ async function register(req, res, next) {
  */
 async function login(req, res, next) {
   try {
-    const { email, password } = req.body;
+    const { identifier, password } = req.body;
 
-    const user = await User.findOne({ email: email.toLowerCase() }).select('+passwordHash');
+    let email = null;
+    let phone = null;
+    let username = null;
+
+    if (isEmail(identifier)) {
+      email = identifier.toLowerCase();
+    } else {
+      phone = normalizePhone(identifier);
+      username = identifier;
+    }
+
+    const queryConds = [];
+    if (email) queryConds.push({ email });
+    if (phone) queryConds.push({ phone });
+    if (username) queryConds.push({ username });
+
+    const user = await User.findOne({ $or: queryConds }).select('+passwordHash');
+    
     if (!user) {
-      return ApiResponse.unauthorized(res, 'Invalid email or password', 'INVALID_CREDENTIALS');
+      return ApiResponse.unauthorized(res, 'Invalid login credentials.', 'INVALID_CREDENTIALS');
     }
 
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return ApiResponse.unauthorized(res, 'Invalid email or password', 'INVALID_CREDENTIALS');
+      return ApiResponse.unauthorized(res, 'Invalid login credentials.', 'INVALID_CREDENTIALS');
     }
 
     const token = generateToken(user._id);
@@ -84,6 +136,7 @@ async function login(req, res, next) {
         id: user._id,
         username: user.username,
         email: user.email,
+        phone: user.phone,
         displayName: user.displayName,
         role: user.role,
         avatar: user.avatar,

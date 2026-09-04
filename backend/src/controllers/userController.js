@@ -40,9 +40,10 @@ async function getProfile(req, res, next) {
  */
 async function updateProfile(req, res, next) {
   try {
-    const { displayName, bio, avatar, preferences } = req.body;
+    const { username, displayName, bio, avatar, preferences } = req.body;
     const updateFields = {};
 
+    if (username !== undefined) updateFields.username = username;
     if (displayName !== undefined) updateFields.displayName = displayName;
     if (bio !== undefined) updateFields.bio = bio;
     if (avatar !== undefined) updateFields.avatar = avatar;
@@ -55,6 +56,29 @@ async function updateProfile(req, res, next) {
     );
 
     return ApiResponse.success(res, { user }, 'Profile updated');
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * POST /api/v1/users/profile/avatar
+ */
+async function uploadAvatar(req, res, next) {
+  try {
+    if (!req.file) {
+      return ApiResponse.badRequest(res, 'No image file provided');
+    }
+
+    const avatarUrl = `/uploads/profiles/${req.file.filename}`;
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { $set: { avatar: avatarUrl } },
+      { new: true, runValidators: true }
+    );
+
+    return ApiResponse.success(res, { user }, 'Avatar uploaded successfully');
   } catch (error) {
     next(error);
   }
@@ -154,4 +178,4 @@ async function searchUsers(req, res, next) {
   }
 }
 
-module.exports = { getProfile, updateProfile, getFollowers, getFollowing, searchUsers };
+module.exports = { getProfile, updateProfile, getFollowers, getFollowing, searchUsers, uploadAvatar };

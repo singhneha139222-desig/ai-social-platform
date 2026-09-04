@@ -9,10 +9,18 @@ import FeedPage from './pages/FeedPage';
 import ExplorePage from './pages/ExplorePage';
 import CreatePostPage from './pages/CreatePostPage';
 import ProfilePage from './pages/ProfilePage';
+import PostPage from './pages/PostPage';
 import NotificationsPage from './pages/NotificationsPage';
-import SettingsPage from './pages/SettingsPage';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminModeration from './pages/AdminModeration';
+
+// Settings Pages
+import SettingsLayout from './pages/settings/SettingsLayout';
+import EditProfile from './pages/settings/EditProfile';
+import NotificationsSettings from './pages/settings/NotificationsSettings';
+import PrivacySettings from './pages/settings/PrivacySettings';
+import HelpSettings from './pages/settings/HelpSettings';
+import ComingSoonSettings from './pages/settings/ComingSoonSettings';
 
 export default function App() {
   return (
@@ -29,9 +37,26 @@ export default function App() {
               <Route path="/feed" element={<FeedPage />} />
               <Route path="/explore" element={<ExplorePage />} />
               <Route path="/create-post" element={<CreatePostPage />} />
+              <Route path="/post/:id" element={<PostPage />} />
               <Route path="/profile/:username" element={<ProfilePage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
+              
+              {/* Messages Placeholder */}
+              <Route path="/messages" element={<ComingSoonSettings title="Messages" description="Direct messaging is rolling out soon." />} />
+              
+              {/* Settings Routes */}
+              <Route path="/settings" element={<SettingsLayout />}>
+                <Route index element={<Navigate to="edit-profile" replace />} />
+                <Route path="edit-profile" element={<EditProfile />} />
+                <Route path="notifications" element={<NotificationsSettings />} />
+                <Route path="privacy" element={<PrivacySettings />} />
+                <Route path="close-friends" element={<ComingSoonSettings title="Close Friends" />} />
+                <Route path="interactions" element={<ComingSoonSettings title="Interactions" />} />
+                <Route path="content-preferences" element={<ComingSoonSettings title="Content Preferences" />} />
+                <Route path="language" element={<ComingSoonSettings title="Language" />} />
+                <Route path="help" element={<HelpSettings />} />
+                <Route path="saved" element={<ComingSoonSettings title="Saved" />} />
+              </Route>
             </Route>
 
             {/* Admin routes */}

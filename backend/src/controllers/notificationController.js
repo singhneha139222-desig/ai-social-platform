@@ -1,4 +1,5 @@
 const Notification = require('../models/Notification');
+const Interaction = require('../models/Interaction');
 const ApiResponse = require('../utils/apiResponse');
 const { parsePagination, buildPaginationMeta } = require('../utils/pagination');
 
@@ -20,8 +21,26 @@ async function getNotifications(req, res, next) {
       Notification.countDocuments({ recipient: req.user._id, read: false }),
     ]);
 
+    const senderIds = [...new Set(notifications.map(n => n.sender?._id.toString()).filter(Boolean))];
+
+    const followingInteractions = await Interaction.find({
+      user: req.user._id,
+      targetUser: { $in: senderIds },
+      type: 'follow'
+    });
+
+    const followingSet = new Set(followingInteractions.map(i => i.targetUser.toString()));
+
+    const notificationsWithFollowStatus = notifications.map(n => {
+      const nObj = n.toJSON();
+      if (nObj.sender) {
+        nObj.sender.isFollowing = followingSet.has(nObj.sender._id.toString());
+      }
+      return nObj;
+    });
+
     return ApiResponse.success(res, {
-      notifications,
+      notifications: notificationsWithFollowStatus,
       unreadCount,
       pagination: buildPaginationMeta(total, page, limit),
     });

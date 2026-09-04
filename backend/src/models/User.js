@@ -14,11 +14,20 @@ const userSchema = new mongoose.Schema(
     },
     email: {
       type: String,
-      required: [true, 'Email is required'],
       unique: true,
+      sparse: true,
       trim: true,
       lowercase: true,
       match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email'],
+    },
+    phone: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
+    },
+    dateOfBirth: {
+      type: Date,
     },
     passwordHash: {
       type: String,
@@ -75,6 +84,14 @@ const userSchema = new mongoose.Schema(
     },
   }
 );
+
+userSchema.pre('validate', function(next) {
+  if (!this.email && !this.phone) {
+    this.invalidate('email', 'At least one contact method (email or phone) is required');
+    this.invalidate('phone', 'At least one contact method (email or phone) is required');
+  }
+  next();
+});
 
 // Indexes (email and username already indexed via unique:true in schema)
 userSchema.index({ role: 1 });

@@ -43,6 +43,9 @@ export const authAPI = {
 export const userAPI = {
   getProfile: (username) => api.get(`/users/${username}`),
   updateProfile: (data) => api.put('/users/profile', data),
+  uploadAvatar: (formData) => api.post('/users/profile/avatar', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
   getFollowers: (username, page = 1) => api.get(`/users/${username}/followers?page=${page}`),
   getFollowing: (username, page = 1) => api.get(`/users/${username}/following?page=${page}`),
   followUser: (id) => api.post(`/users/${id}/follow`),

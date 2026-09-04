@@ -1,16 +1,22 @@
 import { useState, useEffect } from 'react';
-import { notificationAPI } from '../services/api';
+import { useNavigate } from 'react-router-dom';
+import { notificationAPI, userAPI } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import { formatDistanceToNow } from 'date-fns';
 import { Bell, Heart, MessageCircle, UserPlus, Shield, CheckCheck } from 'lucide-react';
 
 const ICONS = { follow: UserPlus, like: Heart, comment: MessageCircle, moderation: Shield };
+const COLORS = { follow: 'var(--accent-primary)', like: '#ed4956', comment: 'var(--text-secondary)', moderation: 'var(--warning)' };
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const toast = useToast();
+  const navigate = useNavigate();
+
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
+  const BASE_URL = API_URL.replace('/api/v1', '');
 
   useEffect(() => {
     notificationAPI.getNotifications(1).then((res) => {
@@ -37,60 +43,134 @@ export default function NotificationsPage() {
     } catch { /* ignore */ }
   };
 
+  const handleNotificationClick = (n) => {
+    if (!n.read) markRead(n._id);
+    
+    if (n.type === 'follow' && n.sender) {
+      navigate(`/profile/${n.sender.username}`);
+    } else if (n.post && n.post._id) {
+      navigate(`/post/${n.post._id}`);
+    } else if (n.post) {
+      navigate(`/post/${n.post}`); // In case it's just an ID
+    }
+  };
+
+  const handleAvatarClick = (e, username) => {
+    e.stopPropagation();
+    if (username) navigate(`/profile/${username}`);
+  };
+
+  const handleFollowBack = async (e, senderId) => {
+    e.stopPropagation();
+    try {
+      await userAPI.followUser(senderId);
+      setNotifications((prev) => prev.map(n => {
+        if (n.sender?._id === senderId) {
+          return { ...n, sender: { ...n.sender, isFollowing: true } };
+        }
+        return n;
+      }));
+      toast.success('Followed user');
+    } catch (err) {
+      toast.error('Failed to follow');
+    }
+  };
+
   return (
-    <div className="feed-container">
+    <div className="feed-container" style={{ maxWidth: '600px' }}>
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h1>Notifications</h1>
-          {unreadCount > 0 ? (
-            <p>{unreadCount} unread messages</p>
-          ) : (
-            <p>You're all caught up!</p>
-          )}
+          <h2>Notifications</h2>
         </div>
         {unreadCount > 0 && (
-          <button className="btn btn--secondary" onClick={markAllRead}>
-            <CheckCheck size={16} /> Mark all read
+          <button className="btn btn--secondary" onClick={markAllRead} style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}>
+            <CheckCheck size={16} style={{ marginRight: '0.5rem' }} /> Mark all read
           </button>
         )}
       </div>
 
-      {loading ? (
-        <div className="feed-list">{[1, 2, 3].map(i => <div key={i} className="post-card"><div className="skeleton" style={{ height: 40 }} /></div>)}</div>
-      ) : notifications.length === 0 ? (
-        <div className="empty-state">
-          <Bell size={48} style={{ color: 'var(--text-muted)', marginBottom: '1rem' }} />
-          <h3>No notifications</h3>
-          <p>You&apos;re all caught up!</p>
-        </div>
-      ) : (
-        <div className="post-card" style={{ padding: 0, overflow: 'hidden' }}>
-          {notifications.map((n) => {
-            const Icon = ICONS[n.type] || Bell;
-            return (
-              <div
-                key={n._id}
-                className={`notification-item ${!n.read ? 'notification-item--unread' : ''}`}
-                onClick={() => !n.read && markRead(n._id)}
-              >
-                <div className="avatar avatar--md">
-                  {n.sender?.displayName?.[0] || n.sender?.username?.[0] || '?'}
-                </div>
-                <div className="notification-item__content">
-                  <div className="notification-item__text">
-                    <strong>{n.sender?.displayName || n.sender?.username}</strong>{' '}
-                    {n.message}
+      <div style={{ marginTop: '1rem' }}>
+        {loading ? (
+          <div className="feed-list">{[1, 2, 3].map(i => <div key={i} className="post-card"><div className="skeleton" style={{ height: 60 }} /></div>)}</div>
+        ) : notifications.length === 0 ? (
+          <div className="empty-state">
+            <Bell size={48} style={{ color: 'var(--text-muted)', marginBottom: '1rem' }} />
+            <h3>Activity On Your Posts</h3>
+            <p>When someone likes or comments on one of your posts, you'll see it here.</p>
+          </div>
+        ) : (
+          <div className="post-card" style={{ padding: '0.5rem 0', overflow: 'hidden' }}>
+            {notifications.map((n) => {
+              const Icon = ICONS[n.type] || Bell;
+              const iconColor = COLORS[n.type] || 'var(--text-muted)';
+              return (
+                <div
+                  key={n._id}
+                  className={`notification-item ${!n.read ? 'notification-item--unread' : ''}`}
+                  onClick={() => handleNotificationClick(n)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '1rem 1.5rem',
+                    gap: '1rem',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s',
+                    position: 'relative'
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                >
+                  {!n.read && (
+                    <div style={{ position: 'absolute', left: '0.5rem', width: '8px', height: '8px', backgroundColor: 'var(--accent-primary)', borderRadius: '50%' }} />
+                  )}
+                  {n.sender?.avatar ? (
+                    <img 
+                      src={`${BASE_URL}${n.sender.avatar}`} 
+                      alt="Avatar" 
+                      className="avatar-img avatar--md" 
+                      onClick={(e) => handleAvatarClick(e, n.sender?.username)}
+                    />
+                  ) : (
+                    <div className="avatar avatar--md" onClick={(e) => handleAvatarClick(e, n.sender?.username)}>
+                      {n.sender?.displayName?.[0] || n.sender?.username?.[0] || '?'}
+                    </div>
+                  )}
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ fontSize: '0.9375rem', color: 'var(--text-primary)', wordBreak: 'break-word' }}>
+                      <strong 
+                        style={{ fontWeight: 600, marginRight: '0.25rem', cursor: 'pointer' }}
+                        onClick={(e) => handleAvatarClick(e, n.sender?.username)}
+                        onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+                        onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+                      >
+                        {n.sender?.displayName || n.sender?.username}
+                      </strong>
+                      {n.message}
+                    </div>
+                    <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                      {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
+                    </div>
                   </div>
-                  <div className="notification-item__time">
-                    {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
-                  </div>
+                  
+                  {n.type === 'follow' && !n.sender?.isFollowing && (
+                    <button 
+                      className="btn btn--secondary btn--sm" 
+                      style={{ padding: '0.25rem 0.75rem', fontSize: '0.8125rem' }}
+                      onClick={(e) => handleFollowBack(e, n.sender?._id)}
+                    >
+                      Follow Back
+                    </button>
+                  )}
+                  
+                  {n.type !== 'follow' && (
+                    <Icon size={20} style={{ color: iconColor }} />
+                  )}
                 </div>
-                <Icon size={20} style={{ color: 'var(--text-muted)' }} />
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

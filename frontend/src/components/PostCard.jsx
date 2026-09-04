@@ -6,6 +6,9 @@ import { postAPI } from '../services/api';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
+const BASE_URL = API_URL.replace('/api/v1', '');
+
 export default function PostCard({ post, onDelete, onLikeToggle }) {
   const { user } = useAuth();
   const toast = useToast();
@@ -110,9 +113,13 @@ export default function PostCard({ post, onDelete, onLikeToggle }) {
   return (
     <div className="post-card">
       <div className="post-card__header">
-        <div className="avatar avatar--md" onClick={() => navigate(`/profile/${post.author?.username}`)} style={{ cursor: 'pointer' }}>
-          {initial}
-        </div>
+        {post.author?.avatar ? (
+          <img src={`${BASE_URL}${post.author.avatar}`} alt="Avatar" className="avatar-img avatar--md" onClick={() => navigate(`/profile/${post.author?.username}`)} style={{ cursor: 'pointer' }} />
+        ) : (
+          <div className="avatar avatar--md" onClick={() => navigate(`/profile/${post.author?.username}`)} style={{ cursor: 'pointer' }}>
+            {initial}
+          </div>
+        )}
         <div className="post-card__meta">
           <div className="post-card__author" onClick={() => navigate(`/profile/${post.author?.username}`)} style={{ cursor: 'pointer' }}>
             {post.author?.displayName || post.author?.username}
@@ -164,9 +171,13 @@ export default function PostCard({ post, onDelete, onLikeToggle }) {
           </form>
           {comments.map((c) => (
             <div key={c._id} className="comment-item">
-              <div className="avatar avatar--sm">
-                {c.author?.displayName?.[0] || c.author?.username?.[0] || '?'}
-              </div>
+              {c.author?.avatar ? (
+                <img src={`${BASE_URL}${c.author.avatar}`} alt="Avatar" className="avatar-img avatar--sm" />
+              ) : (
+                <div className="avatar avatar--sm">
+                  {c.author?.displayName?.[0] || c.author?.username?.[0] || '?'}
+                </div>
+              )}
               <div className="comment-content">
                 <div className="comment-header">
                   <span className="comment-author">{c.author?.displayName || c.author?.username}</span>

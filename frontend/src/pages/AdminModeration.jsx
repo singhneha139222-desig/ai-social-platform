@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { adminAPI } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import { formatDistanceToNow } from 'date-fns';
-import { CheckCircle, XCircle, Eye, AlertTriangle } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 
 export default function AdminModeration() {
   const [items, setItems] = useState([]);
@@ -10,6 +10,7 @@ export default function AdminModeration() {
   const [selected, setSelected] = useState(null);
   const [detail, setDetail] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null); // 'approve' | 'reject' | null
   const toast = useToast();
 
   const fetchFlagged = async () => {
@@ -25,6 +26,7 @@ export default function AdminModeration() {
 
   const viewDetail = async (item) => {
     setSelected(item);
+    setConfirmAction(null);
     try {
       const res = await adminAPI.getModerationDetail(item._id, 'post');
       setDetail(res.data.data);
@@ -32,6 +34,10 @@ export default function AdminModeration() {
   };
 
   const handleApprove = async (id) => {
+    if (confirmAction !== 'approve') {
+      setConfirmAction('approve');
+      return;
+    }
     setActionLoading(true);
     try {
       await adminAPI.approveContent(id, { type: 'post', reason: 'Approved by admin' });
@@ -39,11 +45,16 @@ export default function AdminModeration() {
       setItems((prev) => prev.filter((i) => i._id !== id));
       setSelected(null);
       setDetail(null);
+      setConfirmAction(null);
     } catch (err) { toast.error(err.response?.data?.message || 'Failed to approve'); }
     setActionLoading(false);
   };
 
   const handleReject = async (id) => {
+    if (confirmAction !== 'reject') {
+      setConfirmAction('reject');
+      return;
+    }
     setActionLoading(true);
     try {
       await adminAPI.rejectContent(id, { type: 'post', reason: 'Rejected by admin — violates content guidelines' });
@@ -51,6 +62,7 @@ export default function AdminModeration() {
       setItems((prev) => prev.filter((i) => i._id !== id));
       setSelected(null);
       setDetail(null);
+      setConfirmAction(null);
     } catch (err) { toast.error(err.response?.data?.message || 'Failed to reject'); }
     setActionLoading(false);
   };
@@ -58,7 +70,7 @@ export default function AdminModeration() {
   return (
     <div className="feed-container" style={{ maxWidth: '1000px' }}>
       <div className="page-header">
-        <h1>Content Moderation</h1>
+        <h2>Content Moderation</h2>
         <p>Review flagged and pending content</p>
       </div>
 
@@ -70,7 +82,7 @@ export default function AdminModeration() {
           ) : items.length === 0 ? (
             <div className="mod-card">
               <div className="empty-state">
-                <CheckCircle size={48} style={{ color: 'var(--success)' }} />
+                <CheckCircle size={48} style={{ color: 'var(--success)', marginBottom: '1rem' }} />
                 <h3>Queue is clear</h3>
                 <p>No flagged content to review</p>
               </div>
@@ -78,8 +90,11 @@ export default function AdminModeration() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {items.map((item) => (
-                <div key={item._id} className="mod-card" style={{ cursor: 'pointer', border: selected?._id === item._id ? '2px solid var(--accent-primary)' : undefined, marginBottom: 0 }}
-                  onClick={() => viewDetail(item)}>
+                <div key={item._id} className="mod-card" style={{ cursor: 'pointer', border: selected?._id === item._id ? '2px solid var(--accent-primary)' : '1px solid var(--border-default)', marginBottom: 0, transition: 'all 0.2s' }}
+                  onClick={() => viewDetail(item)}
+                  onMouseEnter={e => { if (selected?._id !== item._id) e.currentTarget.style.borderColor = 'var(--border-strong)'; }}
+                  onMouseLeave={e => { if (selected?._id !== item._id) e.currentTarget.style.borderColor = 'var(--border-default)'; }}
+                >
                   <div className="mod-card__header">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                       <div className="avatar avatar--sm">{item.author?.username?.[0] || '?'}</div>
@@ -107,12 +122,12 @@ export default function AdminModeration() {
 
         {/* Detail Panel */}
         {selected && (
-          <div className="mod-card" style={{ position: 'sticky', top: '2rem', alignSelf: 'start', margin: 0 }}>
+          <div className="mod-card" style={{ position: 'sticky', top: '2rem', alignSelf: 'start', margin: 0, boxShadow: 'var(--shadow-md)' }}>
             <h3 style={{ marginBottom: '1.5rem', fontWeight: 600 }}>Content Review</h3>
 
             <div style={{ marginBottom: '1.5rem' }}>
               <div className="mod-card__meta" style={{ marginBottom: '0.25rem' }}>Author</div>
-              <div style={{ fontWeight: 600 }}>{selected.author?.displayName || selected.author?.username} (@{selected.author?.username})</div>
+              <div style={{ fontWeight: 600 }}>{selected.author?.displayName || selected.author?.username} <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(@{selected.author?.username})</span></div>
             </div>
 
             <div style={{ marginBottom: '1.5rem' }}>
@@ -134,7 +149,7 @@ export default function AdminModeration() {
                 <div className="mod-card__meta" style={{ marginBottom: '0.5rem' }}>Category Scores</div>
                 {Object.entries(typeof selected.toxicityCategories.toJSON === 'function' ? selected.toxicityCategories.toJSON() : selected.toxicityCategories).map(([cat, score]) => (
                   <div key={cat} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', padding: '0.25rem 0' }}>
-                    <span>{cat}</span>
+                    <span style={{ textTransform: 'capitalize' }}>{cat}</span>
                     <span style={{ fontWeight: 600, color: score > 0.5 ? 'var(--error)' : 'var(--text-muted)' }}>{(score * 100).toFixed(1)}%</span>
                   </div>
                 ))}
@@ -153,13 +168,26 @@ export default function AdminModeration() {
               </div>
             )}
 
-            <div className="mod-card__actions" style={{ marginTop: '2rem' }}>
-              <button className="btn btn--primary" onClick={() => handleApprove(selected._id)} disabled={actionLoading} style={{ flex: 1, backgroundColor: 'var(--success)' }}>
-                <CheckCircle size={16} /> Approve
-              </button>
-              <button className="btn btn--danger" onClick={() => handleReject(selected._id)} disabled={actionLoading} style={{ flex: 1 }}>
-                <XCircle size={16} /> Reject
-              </button>
+            <div className="mod-card__actions" style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
+              {confirmAction === 'reject' ? (
+                <button className="btn btn--danger" onClick={() => setConfirmAction(null)} style={{ flex: 1, backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
+                  Cancel
+                </button>
+              ) : (
+                <button className="btn btn--primary" onClick={() => handleApprove(selected._id)} disabled={actionLoading} style={{ flex: 1, backgroundColor: confirmAction === 'approve' ? 'var(--success)' : undefined }}>
+                  {confirmAction === 'approve' ? 'Click to Confirm Approve' : <><CheckCircle size={16} /> Approve</>}
+                </button>
+              )}
+              
+              {confirmAction === 'approve' ? (
+                <button className="btn btn--secondary" onClick={() => setConfirmAction(null)} style={{ flex: 1 }}>
+                  Cancel
+                </button>
+              ) : (
+                <button className="btn btn--danger" onClick={() => handleReject(selected._id)} disabled={actionLoading} style={{ flex: 1 }}>
+                  {confirmAction === 'reject' ? 'Click to Confirm Reject' : <><XCircle size={16} /> Reject</>}
+                </button>
+              )}
             </div>
           </div>
         )}
