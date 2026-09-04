@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema(
       required: [true, 'Username is required'],
       unique: true,
       trim: true,
+      lowercase: true,
       minlength: 3,
       maxlength: 30,
       match: [/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'],
@@ -64,6 +65,16 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    gender: {
+      type: String,
+      enum: ['Male', 'Female', 'Custom', 'Prefer not to say'],
+      default: 'Prefer not to say'
+    },
+    website: {
+      type: String,
+      trim: true,
+      default: ''
+    },
     preferences: {
       contentCategories: [String],
       sentimentPreference: {
@@ -71,6 +82,11 @@ const userSchema = new mongoose.Schema(
         enum: ['positive', 'neutral', 'negative', 'all'],
         default: 'all',
       },
+      showThreadsBadge: { type: Boolean, default: true },
+      isAICreator: { type: Boolean, default: false },
+      showAccountSuggestions: { type: Boolean, default: true },
+      isPrivate: { type: Boolean, default: false },
+      showActivityStatus: { type: Boolean, default: true }
     },
   },
   {

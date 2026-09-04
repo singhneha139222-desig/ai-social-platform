@@ -39,4 +39,29 @@ const auth = async (req, res, next) => {
   }
 };
 
+const optionalAuth = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return next();
+    }
+
+    const token = authHeader.split(' ')[1];
+    let decoded;
+    try {
+      decoded = jwt.verify(token, config.jwtSecret);
+      const user = await User.findById(decoded.id);
+      if (user) {
+        req.user = user;
+      }
+    } catch (err) {
+      // ignore
+    }
+    next();
+  } catch (error) {
+    next();
+  }
+};
+
 module.exports = auth;
+module.exports.optionalAuth = optionalAuth;

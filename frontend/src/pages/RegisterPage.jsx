@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import useUsernameAvailability from '../hooks/useUsernameAvailability';
+import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 
 export default function RegisterPage() {
   const { register } = useAuth();
@@ -19,6 +21,8 @@ export default function RegisterPage() {
   
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  
+  const { status: usernameStatus, suggestions, error: usernameError } = useUsernameAvailability(form.username);
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -130,25 +134,77 @@ export default function RegisterPage() {
               </div>
 
               <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-                <input 
-                  id="username" 
-                  name="username" 
-                  className="form-input" 
-                  placeholder="Username"
-                  value={form.username} 
-                  onChange={handleChange} 
-                  required 
-                  minLength={3} 
-                  maxLength={30} 
-                  aria-label="Username"
-                />
+                <div style={{ position: 'relative' }}>
+                  <input 
+                    id="username" 
+                    name="username" 
+                    className={`form-input ${usernameStatus === 'invalid' || usernameStatus === 'taken' ? 'input-error' : usernameStatus === 'available' ? 'input-success' : ''}`}
+                    placeholder="Username"
+                    value={form.username} 
+                    onChange={handleChange} 
+                    required 
+                    minLength={3} 
+                    maxLength={30} 
+                    aria-label="Username"
+                  />
+                  <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center' }}>
+                    {usernameStatus === 'checking' && <Loader2 size={18} className="spin" style={{ color: 'var(--text-muted)' }} />}
+                    {usernameStatus === 'available' && <CheckCircle2 size={18} style={{ color: 'var(--success-color)' }} />}
+                    {(usernameStatus === 'taken' || usernameStatus === 'invalid') && <XCircle size={18} style={{ color: 'var(--error-color)' }} />}
+                  </div>
+                </div>
+                
+                {usernameStatus === 'invalid' && (
+                  <div style={{ fontSize: '0.8rem', color: 'var(--error-color)', marginTop: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <XCircle size={14} /> {usernameError}
+                  </div>
+                )}
+                
+                {usernameStatus === 'available' && (
+                  <div style={{ fontSize: '0.8rem', color: 'var(--success-color)', marginTop: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <CheckCircle2 size={14} /> Username is available
+                  </div>
+                )}
+                
+                {usernameStatus === 'taken' && (
+                  <div style={{ marginTop: '0.4rem' }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--error-color)', display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.5rem' }}>
+                      <XCircle size={14} /> Username isn't available. Try one of these:
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      {suggestions.map(sugg => (
+                        <button
+                          key={sugg}
+                          type="button"
+                          onClick={() => setForm({ ...form, username: sugg })}
+                          style={{
+                            padding: '0.25rem 0.75rem',
+                            fontSize: '0.8rem',
+                            backgroundColor: 'var(--bg-secondary)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '1rem',
+                            cursor: 'pointer',
+                            color: 'var(--text-primary)'
+                          }}
+                        >
+                          {sugg}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
               
               <div className="auth-disclaimer">
                 By creating an account, you agree to our <Link to="#">Terms</Link> and <Link to="#">Privacy Policy</Link>.
               </div>
 
-              <button className="btn btn--primary btn--full" disabled={loading} type="submit" style={{ padding: '0.8rem' }}>
+              <button 
+                className="btn btn--primary btn--full" 
+                disabled={loading || usernameStatus === 'checking' || usernameStatus === 'invalid' || usernameStatus === 'taken'} 
+                type="submit" 
+                style={{ padding: '0.8rem' }}
+              >
                 {loading ? 'Creating account...' : 'Create account'}
               </button>
             </form>

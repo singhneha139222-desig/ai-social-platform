@@ -51,6 +51,7 @@ export const userAPI = {
   followUser: (id) => api.post(`/users/${id}/follow`),
   unfollowUser: (id) => api.delete(`/users/${id}/follow`),
   searchUsers: (q) => api.get(`/users/search?q=${encodeURIComponent(q)}`),
+  checkUsername: (username) => api.get(`/users/check-username?username=${encodeURIComponent(username)}`),
 };
 
 // Post APIs

@@ -80,6 +80,21 @@ const profileUpdateValidation = [
     .trim()
     .isLength({ max: CONTENT_LIMITS.BIO_MAX_LENGTH })
     .withMessage(`Bio must be at most ${CONTENT_LIMITS.BIO_MAX_LENGTH} characters`),
+  body('gender')
+    .optional()
+    .isIn(['Male', 'Female', 'Custom', 'Prefer not to say'])
+    .withMessage('Invalid gender selection'),
+  body('website')
+    .optional()
+    .trim()
+    .isURL()
+    .withMessage('Invalid website URL')
+    .or()
+    .isEmpty(),
+  body('preferences')
+    .optional()
+    .isObject()
+    .withMessage('Preferences must be an object'),
 ];
 
 module.exports = {

@@ -1,18 +1,37 @@
 import { useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { userAPI } from '../../services/api';
 import { Lock, Users } from 'lucide-react';
 
 export default function PrivacySettings() {
+  const { user, updateUser } = useAuth();
   const toast = useToast();
+  
   const [prefs, setPrefs] = useState({
-    privateAccount: false,
-    activityStatus: true
+    privateAccount: user?.preferences?.isPrivate ?? false,
+    activityStatus: user?.preferences?.showActivityStatus ?? true
   });
 
-  const handleChange = (e) => {
+  const handleChange = async (e) => {
     const { name, checked } = e.target;
-    setPrefs({ ...prefs, [name]: checked });
-    toast.success('Privacy updated');
+    const updatedPrefs = { ...prefs, [name]: checked };
+    setPrefs(updatedPrefs);
+    
+    try {
+      const res = await userAPI.updateProfile({
+        preferences: {
+          isPrivate: updatedPrefs.privateAccount,
+          showActivityStatus: updatedPrefs.activityStatus
+        }
+      });
+      updateUser(res.data.data.user);
+      toast.success('Privacy updated');
+    } catch (err) {
+      toast.error('Failed to update privacy');
+      // Revert local state on failure
+      setPrefs(prefs);
+    }
   };
 
   return (

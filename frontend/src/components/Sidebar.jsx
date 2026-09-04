@@ -1,5 +1,5 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Search, Compass, Bell, User, Settings, Shield, LogOut, PlusSquare, Menu, X, MessageCircle, MoreHorizontal, Bookmark, AlertCircle, PlaySquare } from 'lucide-react';
+import { Home, Search, Compass, Bell, User, Settings, Shield, LogOut, PlusSquare, Menu, X, MessageCircle, MoreHorizontal, Bookmark, AlertCircle, PlaySquare, Heart, Plus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useState, useEffect, useRef } from 'react';
 import { notificationAPI } from '../services/api';
@@ -40,12 +40,13 @@ export default function Sidebar() {
 
   const links = [
     { to: '/feed', icon: Home, label: 'Home' },
-    { to: '/explore', icon: Search, label: 'Search' },
     { to: '/explore?tab=reels', icon: PlaySquare, label: 'Reels' },
+    { to: '/explore', icon: Compass, label: 'Explore' },
+    { to: '/search', icon: Search, label: 'Search' },
     { to: '/messages', icon: MessageCircle, label: 'Messages' },
-    { to: '/notifications', icon: Bell, label: 'Notifications', badge: unreadCount },
-    { to: '/create-post', icon: PlusSquare, label: 'Create' },
-    { to: `/profile/${user?.username}`, icon: User, label: 'Profile' }
+    { to: '/notifications', icon: Heart, label: 'Notifications', badge: unreadCount },
+    { to: '/create-post', icon: Plus, label: 'Create' },
+    { to: `/profile/${user?.username}`, isAvatar: true, label: 'Profile' }
   ];
 
   if (user?.role === 'admin') {
@@ -69,20 +70,10 @@ export default function Sidebar() {
           <span className="sidebar__logo-text">AI Social</span>
         </div>
 
-        <div className="sidebar__user">
-            {user?.avatar ? (
-              <img src={`${BASE_URL}${user.avatar}`} alt="Avatar" className="avatar-img avatar--md" />
-            ) : (
-              <div className="avatar avatar--md">{initial}</div>
-            )}
-            <div className="sidebar__user-info">
-              <span className="sidebar__user-name">{user?.displayName || user?.username}</span>
-              <span className="sidebar__user-handle">@{user?.username}</span>
-            </div>
-        </div>
+
 
         <nav className="sidebar__nav">
-          {links.map(({ to, icon: Icon, label, badge }) => (
+          {links.map(({ to, icon: Icon, label, badge, isAvatar }) => (
             <NavLink
               key={to}
               to={to}
@@ -91,7 +82,17 @@ export default function Sidebar() {
               }
               onClick={() => setOpen(false)}
             >
-              <Icon size={24} />
+              {isAvatar ? (
+                user?.avatar ? (
+                  <img src={`${BASE_URL}${user.avatar}`} alt="Profile" style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }} />
+                ) : (
+                  <div style={{ width: 24, height: 24, borderRadius: '50%', backgroundColor: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 'bold' }}>
+                    {initial}
+                  </div>
+                )
+              ) : (
+                <Icon size={24} />
+              )}
               <span className="sidebar__link-text">{label}</span>
               {badge > 0 && <span className="sidebar__badge">{badge}</span>}
             </NavLink>
