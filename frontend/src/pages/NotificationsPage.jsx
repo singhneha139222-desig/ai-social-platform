@@ -10,6 +10,7 @@ const COLORS = { follow: 'var(--accent-primary)', like: '#ed4956', comment: 'var
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState([]);
+  const [followRequests, setFollowRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const toast = useToast();
@@ -19,9 +20,13 @@ export default function NotificationsPage() {
   const BASE_URL = API_URL.replace('/api/v1', '');
 
   useEffect(() => {
-    notificationAPI.getNotifications(1).then((res) => {
-      setNotifications(res.data.data.notifications || []);
-      setUnreadCount(res.data.data.unreadCount || 0);
+    Promise.all([
+      notificationAPI.getNotifications(1),
+      userAPI.getFollowRequests()
+    ]).then(([notifRes, reqRes]) => {
+      setNotifications(notifRes.data.data.notifications || []);
+      setUnreadCount(notifRes.data.data.unreadCount || 0);
+      setFollowRequests(reqRes.data.data.requests || []);
     }).catch(() => toast.error('Failed to load notifications'))
       .finally(() => setLoading(false));
   }, []);
@@ -76,6 +81,28 @@ export default function NotificationsPage() {
     }
   };
 
+  const handleAcceptRequest = async (e, requesterId) => {
+    e.stopPropagation();
+    try {
+      await userAPI.acceptFollowRequest(requesterId);
+      setFollowRequests(prev => prev.filter(r => r.user._id !== requesterId));
+      toast.success('Follow request accepted');
+    } catch {
+      toast.error('Failed to accept request');
+    }
+  };
+
+  const handleRejectRequest = async (e, requesterId) => {
+    e.stopPropagation();
+    try {
+      await userAPI.rejectFollowRequest(requesterId);
+      setFollowRequests(prev => prev.filter(r => r.user._id !== requesterId));
+      toast.success('Follow request rejected');
+    } catch {
+      toast.error('Failed to reject request');
+    }
+  };
+
   return (
     <div className="feed-container" style={{ maxWidth: '600px' }}>
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -90,6 +117,42 @@ export default function NotificationsPage() {
       </div>
 
       <div style={{ marginTop: '1rem' }}>
+        {!loading && followRequests.length > 0 && (
+          <div className="post-card" style={{ padding: '0.5rem 0', overflow: 'hidden', marginBottom: '1rem' }}>
+            <h4 style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', margin: 0 }}>Follow Requests</h4>
+            {followRequests.map((req) => (
+              <div key={req._id} style={{ display: 'flex', alignItems: 'center', padding: '1rem 1.5rem', gap: '1rem' }}>
+                  {req.user?.avatar ? (
+                    <img 
+                      src={`${BASE_URL}${req.user.avatar}`} 
+                      alt="Avatar" 
+                      className="avatar-img avatar--md" 
+                      onClick={(e) => handleAvatarClick(e, req.user?.username)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                  ) : (
+                    <div className="avatar avatar--md" onClick={(e) => handleAvatarClick(e, req.user?.username)} style={{ cursor: 'pointer' }}>
+                      {req.user?.displayName?.[0] || req.user?.username?.[0] || '?'}
+                    </div>
+                  )}
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                    <strong 
+                      style={{ fontWeight: 600, cursor: 'pointer' }}
+                      onClick={(e) => handleAvatarClick(e, req.user?.username)}
+                    >
+                      {req.user?.displayName || req.user?.username}
+                    </strong>
+                    <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>@{req.user?.username}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button className="btn btn--primary btn--sm" style={{ padding: '0.3rem 0.8rem', fontSize: '0.8rem' }} onClick={(e) => handleAcceptRequest(e, req.user._id)}>Accept</button>
+                    <button className="btn btn--secondary btn--sm" style={{ padding: '0.3rem 0.8rem', fontSize: '0.8rem' }} onClick={(e) => handleRejectRequest(e, req.user._id)}>Reject</button>
+                  </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {loading ? (
           <div className="feed-list">{[1, 2, 3].map(i => <div key={i} className="post-card"><div className="skeleton" style={{ height: 60 }} /></div>)}</div>
         ) : notifications.length === 0 ? (

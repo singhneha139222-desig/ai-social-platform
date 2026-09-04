@@ -35,6 +35,24 @@ async function notifyFollow(senderId, recipientId) {
   });
 }
 
+async function notifyFollowRequest(senderId, recipientId) {
+  return createNotification({
+    recipient: recipientId,
+    sender: senderId,
+    type: 'follow_request',
+    message: 'requested to follow you',
+  });
+}
+
+async function notifyAcceptedFollow(senderId, recipientId) {
+  return createNotification({
+    recipient: recipientId,
+    sender: senderId,
+    type: 'accepted_follow_request',
+    message: 'accepted your follow request',
+  });
+}
+
 async function notifyLike(senderId, recipientId, postId) {
   return createNotification({
     recipient: recipientId,
@@ -76,6 +94,8 @@ async function notifyModeration(recipientId, postId, status) {
 module.exports = {
   createNotification,
   notifyFollow,
+  notifyFollowRequest,
+  notifyAcceptedFollow,
   notifyLike,
   notifyComment,
   notifyModeration,

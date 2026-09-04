@@ -4,7 +4,7 @@ import { userAPI, postAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import PostCard from '../components/PostCard';
-import { UserPlus, UserMinus } from 'lucide-react';
+import { UserPlus, UserMinus, Clock } from 'lucide-react';
 import UserListModal from '../components/UserListModal';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
@@ -18,6 +18,7 @@ export default function ProfilePage() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [following, setFollowing] = useState(false);
+  const [requested, setRequested] = useState(false);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState('followers'); // 'followers' or 'following'
@@ -33,6 +34,7 @@ export default function ProfilePage() {
         ]);
         setProfile(profileRes.data.data.user);
         setFollowing(profileRes.data.data.user.isFollowing || false);
+        setRequested(profileRes.data.data.user.hasRequested || false);
 
         // getUserPosts expects userId, but we have username
         // Let's fetch posts using the user ID from profile
@@ -50,16 +52,24 @@ export default function ProfilePage() {
   const handleFollow = async () => {
     if (!profile) return;
     try {
-      if (following) {
+      if (following || requested) {
         await userAPI.unfollowUser(profile._id);
+        if (following) {
+          setProfile((p) => ({ ...p, followersCount: (p.followersCount || 1) - 1 }));
+        }
         setFollowing(false);
-        setProfile((p) => ({ ...p, followersCount: (p.followersCount || 1) - 1 }));
-        toast.success('Unfollowed');
+        setRequested(false);
+        toast.success(requested ? 'Request cancelled' : 'Unfollowed');
       } else {
-        await userAPI.followUser(profile._id);
-        setFollowing(true);
-        setProfile((p) => ({ ...p, followersCount: (p.followersCount || 0) + 1 }));
-        toast.success('Following!');
+        const res = await userAPI.followUser(profile._id);
+        if (res.data?.data?.requested) {
+          setRequested(true);
+          toast.success('Follow request sent!');
+        } else {
+          setFollowing(true);
+          setProfile((p) => ({ ...p, followersCount: (p.followersCount || 0) + 1 }));
+          toast.success('Following!');
+        }
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed');
@@ -125,15 +135,15 @@ export default function ProfilePage() {
           
           <div className="profile-stats">
             <div className="stat-item">
-              <span className="stat-value">{posts.length}</span>
+              <span className="stat-value">{profile.isPrivateAndNotFollowing ? '-' : posts.length}</span>
               <span className="stat-label">Posts</span>
             </div>
-            <div className="stat-item" onClick={handleOpenFollowers} style={{ cursor: 'pointer' }}>
-              <span className="stat-value">{profile.followersCount || 0}</span>
+            <div className="stat-item" onClick={profile.isPrivateAndNotFollowing ? null : handleOpenFollowers} style={{ cursor: profile.isPrivateAndNotFollowing ? 'default' : 'pointer' }}>
+              <span className="stat-value">{profile.isPrivateAndNotFollowing ? '-' : profile.followersCount || 0}</span>
               <span className="stat-label">Followers</span>
             </div>
-            <div className="stat-item" onClick={handleOpenFollowing} style={{ cursor: 'pointer' }}>
-              <span className="stat-value">{profile.followingCount || 0}</span>
+            <div className="stat-item" onClick={profile.isPrivateAndNotFollowing ? null : handleOpenFollowing} style={{ cursor: profile.isPrivateAndNotFollowing ? 'default' : 'pointer' }}>
+              <span className="stat-value">{profile.isPrivateAndNotFollowing ? '-' : profile.followingCount || 0}</span>
               <span className="stat-label">Following</span>
             </div>
           </div>
@@ -143,32 +153,44 @@ export default function ProfilePage() {
           {!isOwnProfile && (
             <div className="profile-actions">
               <button
-                className={`btn ${following ? 'btn--secondary' : 'btn--primary'}`}
+                className={`btn ${following || requested ? 'btn--secondary' : 'btn--primary'}`}
                 onClick={handleFollow}
               >
-                {following ? <><UserMinus size={16} /> Unfollow</> : <><UserPlus size={16} /> Follow</>}
+                {following ? <><UserMinus size={16} /> Unfollow</> : requested ? <><Clock size={16} /> Requested</> : <><UserPlus size={16} /> Follow</>}
               </button>
             </div>
           )}
         </div>
       </div>
 
-      <div className="page-header">
-        <h2>Posts</h2>
-      </div>
-      
-      <div className="feed-list">
-        {posts.length === 0 ? (
-          <div className="empty-state">
-            <h3>No posts yet</h3>
-            <p>This user hasn't posted anything.</p>
+      {profile.isPrivateAndNotFollowing ? (
+        <div className="empty-state" style={{ padding: '3rem', borderTop: '1px solid var(--border-color)', marginTop: '2rem' }}>
+          <div style={{ width: '64px', height: '64px', borderRadius: '50%', border: '2px solid var(--text-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
           </div>
-        ) : (
-          posts.map((post) => (
-            <PostCard key={post._id} post={post} onDelete={handleDeletePost} />
-          ))
-        )}
-      </div>
+          <h3>This account is private</h3>
+          <p style={{ color: 'var(--text-secondary)' }}>Follow to see their posts, followers, and following.</p>
+        </div>
+      ) : (
+        <>
+          <div className="page-header">
+            <h2>Posts</h2>
+          </div>
+          
+          <div className="feed-list">
+            {posts.length === 0 ? (
+              <div className="empty-state">
+                <h3>No posts yet</h3>
+                <p>This user hasn't posted anything.</p>
+              </div>
+            ) : (
+              posts.map((post) => (
+                <PostCard key={post._id} post={post} onDelete={handleDeletePost} />
+              ))
+            )}
+          </div>
+        </>
+      )}
       
       <UserListModal
         isOpen={modalOpen}

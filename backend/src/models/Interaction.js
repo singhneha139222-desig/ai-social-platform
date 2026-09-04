@@ -21,7 +21,7 @@ const interactionSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['like', 'comment', 'follow', 'view'],
+      enum: ['like', 'comment', 'follow', 'view', 'follow_request'],
       required: true,
     },
   },

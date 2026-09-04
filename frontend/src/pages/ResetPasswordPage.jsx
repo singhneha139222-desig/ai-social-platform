@@ -1,29 +1,43 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
+import { authAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
-export default function LoginPage() {
-  const { login } = useAuth();
-  const toast = useToast();
+export default function ResetPasswordPage() {
+  const { token } = useParams();
   const navigate = useNavigate();
+  const { updateUser } = useAuth();
+  const toast = useToast();
   
-  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!identifier || !password) return;
+    if (password !== confirmPassword) {
+      return toast.error('Passwords do not match');
+    }
+    if (password.length < 6) {
+      return toast.error('Password must be at least 6 characters');
+    }
+
     setLoading(true);
     try {
-      await login(identifier, password);
-      toast.success('Welcome back!');
+      const res = await authAPI.resetPassword(token, { password });
+      
+      // Auto login user with new token
+      localStorage.setItem('token', res.data.data.token);
+      localStorage.setItem('user', JSON.stringify(res.data.data.user));
+      updateUser(res.data.data.user);
+      
+      toast.success('Password reset successful! Welcome back.');
       navigate('/feed');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Invalid login credentials.');
+      toast.error(err.response?.data?.message || 'Invalid or expired token. Please try again.');
     }
     setLoading(false);
   };
@@ -37,8 +51,8 @@ export default function LoginPage() {
           <div className="shape-2"></div>
           <div className="auth-brand__content">
             <div className="auth-brand__logo">AI Social</div>
-            <h1 className="auth-brand__title">Connect.<br/>Discover.<br/>Share safely.</h1>
-            <p className="auth-brand__subtitle">A smarter, safer social experience powered by AI.</p>
+            <h1 className="auth-brand__title">Reset Password</h1>
+            <p className="auth-brand__subtitle">Choose a strong, new password that you haven't used before.</p>
           </div>
         </div>
         
@@ -46,33 +60,20 @@ export default function LoginPage() {
         <div className="auth-form-container">
           <div className="auth-card">
             <div className="auth-card__header">
-              <h1>Log in</h1>
+              <h1>Create new password</h1>
             </div>
             
             <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <input 
-                  id="identifier" 
-                  className="form-input" 
-                  type="text" 
-                  placeholder="Mobile number, username or email address"
-                  value={identifier} 
-                  onChange={(e) => setIdentifier(e.target.value)} 
-                  required 
-                  autoFocus 
-                  aria-label="Mobile number, username or email address"
-                />
-              </div>
               <div className="form-group" style={{ position: 'relative' }}>
                 <input 
                   id="password" 
                   className="form-input" 
                   type={showPassword ? "text" : "password"} 
-                  placeholder="Password"
+                  placeholder="New password"
                   value={password} 
                   onChange={(e) => setPassword(e.target.value)} 
                   required 
-                  aria-label="Password"
+                  autoFocus
                 />
                 <button
                   type="button"
@@ -84,17 +85,25 @@ export default function LoginPage() {
                 </button>
               </div>
               
+              <div className="form-group">
+                <input 
+                  id="confirmPassword" 
+                  className="form-input" 
+                  type={showPassword ? "text" : "password"} 
+                  placeholder="Confirm new password"
+                  value={confirmPassword} 
+                  onChange={(e) => setConfirmPassword(e.target.value)} 
+                  required 
+                />
+              </div>
+              
               <button className="btn btn--primary btn--full" disabled={loading} type="submit" style={{marginTop: '1rem', padding: '0.8rem'}}>
-                {loading ? 'Logging in...' : 'Log in'}
+                {loading ? 'Resetting...' : 'Reset password'}
               </button>
             </form>
             
-            <div className="auth-forgot-password">
-              <Link to="/forgot-password">Forgot password?</Link>
-            </div>
-
-            <div className="auth-card__footer">
-              Don&apos;t have an account? <Link to="/register">Sign up</Link>
+            <div className="auth-card__footer" style={{ borderTop: 'none', paddingTop: '1.5rem' }}>
+              <Link to="/login" style={{ fontWeight: '600' }}>Back to Log in</Link>
             </div>
           </div>
         </div>

@@ -13,23 +13,49 @@ async function getProfile(req, res, next) {
       return ApiResponse.notFound(res, 'User not found');
     }
 
-    // Check if the requesting user follows this user
+    // Check if the requesting user follows this user or requested to follow
     let isFollowing = false;
+    let hasRequested = false;
+    let isPrivateAndNotFollowing = false;
+
     if (req.user) {
-      const follow = await Interaction.findOne({
+      const existing = await Interaction.findOne({
         user: req.user._id,
         targetUser: user._id,
-        type: 'follow',
+        type: { $in: ['follow', 'follow_request'] },
       });
-      isFollowing = !!follow;
+      if (existing) {
+        if (existing.type === 'follow') isFollowing = true;
+        if (existing.type === 'follow_request') hasRequested = true;
+      }
+
+      // Check privacy logic
+      const isSelf = req.user._id.toString() === user._id.toString();
+      const isAdmin = req.user.role === 'admin';
+      if (user.preferences && user.preferences.isPrivate && !isFollowing && !isSelf && !isAdmin) {
+        isPrivateAndNotFollowing = true;
+      }
+    } else {
+      // Unauthenticated users viewing a private profile
+      if (user.preferences && user.preferences.isPrivate) {
+        isPrivateAndNotFollowing = true;
+      }
     }
 
-    return ApiResponse.success(res, {
-      user: {
-        ...user.toJSON(),
-        isFollowing,
-      },
-    });
+    const responseUser = {
+      ...user.toJSON(),
+      isFollowing,
+      hasRequested,
+      isPrivateAndNotFollowing
+    };
+
+    if (isPrivateAndNotFollowing) {
+      // Mask counts for privacy
+      responseUser.followersCount = 0;
+      responseUser.followingCount = 0;
+    }
+
+    return ApiResponse.success(res, { user: responseUser });
   } catch (error) {
     next(error);
   }
@@ -103,6 +129,20 @@ async function getFollowers(req, res, next) {
 
     const { page, limit, skip } = parsePagination(req.query);
 
+    // Privacy check
+    const isSelf = req.user._id.toString() === user._id.toString();
+    const isAdmin = req.user.role === 'admin';
+    if (user.preferences && user.preferences.isPrivate && !isSelf && !isAdmin) {
+      const isFollowing = await Interaction.exists({
+        user: req.user._id,
+        targetUser: user._id,
+        type: 'follow'
+      });
+      if (!isFollowing) {
+        return ApiResponse.success(res, { users: [], pagination: buildPaginationMeta(0, page, limit) });
+      }
+    }
+
     const [followers, total] = await Promise.all([
       Interaction.find({ targetUser: user._id, type: 'follow' })
         .sort({ createdAt: -1 })
@@ -132,6 +172,20 @@ async function getFollowing(req, res, next) {
     }
 
     const { page, limit, skip } = parsePagination(req.query);
+
+    // Privacy check
+    const isSelf = req.user._id.toString() === user._id.toString();
+    const isAdmin = req.user.role === 'admin';
+    if (user.preferences && user.preferences.isPrivate && !isSelf && !isAdmin) {
+      const isFollowing = await Interaction.exists({
+        user: req.user._id,
+        targetUser: user._id,
+        type: 'follow'
+      });
+      if (!isFollowing) {
+        return ApiResponse.success(res, { users: [], pagination: buildPaginationMeta(0, page, limit) });
+      }
+    }
 
     const [following, total] = await Promise.all([
       Interaction.find({ user: user._id, type: 'follow' })

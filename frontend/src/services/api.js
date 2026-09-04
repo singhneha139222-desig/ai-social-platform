@@ -37,6 +37,8 @@ export const authAPI = {
   register: (data) => api.post('/auth/register', data),
   login: (data) => api.post('/auth/login', data),
   getMe: () => api.get('/auth/me'),
+  forgotPassword: (data) => api.post('/auth/forgot-password', data),
+  resetPassword: (token, data) => api.post(`/auth/reset-password/${token}`, data),
 };
 
 // User APIs
@@ -52,6 +54,9 @@ export const userAPI = {
   unfollowUser: (id) => api.delete(`/users/${id}/follow`),
   searchUsers: (q) => api.get(`/users/search?q=${encodeURIComponent(q)}`),
   checkUsername: (username) => api.get(`/users/check-username?username=${encodeURIComponent(username)}`),
+  getFollowRequests: () => api.get('/users/follow-requests'),
+  acceptFollowRequest: (id) => api.post(`/users/${id}/accept-follow`),
+  rejectFollowRequest: (id) => api.post(`/users/${id}/reject-follow`),
 };
 
 // Post APIs

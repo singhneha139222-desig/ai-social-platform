@@ -1,4 +1,6 @@
 const Post = require('../models/Post');
+const User = require('../models/User');
+const Interaction = require('../models/Interaction');
 const ModerationLog = require('../models/ModerationLog');
 const aiService = require('../services/aiService');
 const moderationService = require('../services/moderationService');
@@ -153,7 +155,6 @@ async function getPost(req, res, next) {
     }
 
     // Check if current user has liked this post
-    const Interaction = require('../models/Interaction');
     const liked = await Interaction.findOne({
       user: req.user._id,
       post: post._id,
@@ -191,7 +192,6 @@ async function deletePost(req, res, next) {
 
     // Clean up related data
     const Comment = require('../models/Comment');
-    const Interaction = require('../models/Interaction');
     await Promise.all([
       Comment.deleteMany({ post: post._id }),
       Interaction.deleteMany({ post: post._id }),
@@ -213,12 +213,31 @@ async function getUserPosts(req, res, next) {
     const { page, limit, skip } = parsePagination(req.query);
     const userId = req.params.userId;
 
-    // Show all statuses for the author or admin, only published for others
-    const isOwner = req.user._id.toString() === userId;
+    const user = await User.findById(userId);
+    if (!user) return ApiResponse.notFound(res, 'User not found');
+
+    const isSelf = req.user._id.toString() === userId;
     const isAdmin = req.user.role === 'admin';
+    let isFollowing = false;
+
+    if (!isSelf && !isAdmin) {
+      isFollowing = await Interaction.exists({
+        user: req.user._id,
+        targetUser: userId,
+        type: 'follow'
+      });
+      
+      // Privacy check
+      if (user.preferences && user.preferences.isPrivate && !isFollowing) {
+        return ApiResponse.success(res, {
+          posts: [],
+          pagination: buildPaginationMeta(0, page, limit),
+        });
+      }
+    }
 
     const filter = { author: userId };
-    if (!isOwner && !isAdmin) {
+    if (!isSelf && !isAdmin) {
       filter.moderationStatus = { $in: PUBLIC_STATUSES };
     }
 
@@ -227,12 +246,27 @@ async function getUserPosts(req, res, next) {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .populate('author', 'username displayName avatar'),
+        .populate('author', 'username displayName avatar')
+        .lean(),
       Post.countDocuments(filter),
     ]);
 
+    // Check which posts the user has liked
+    const postIds = posts.map((p) => p._id);
+    const userLikes = await Interaction.find({
+      user: req.user._id,
+      post: { $in: postIds },
+      type: 'like',
+    }).lean();
+    const likedPostIds = new Set(userLikes.map((l) => l.post.toString()));
+
+    const postsWithLikeStatus = posts.map((p) => ({
+      ...p,
+      isLiked: likedPostIds.has(p._id.toString()),
+    }));
+
     return ApiResponse.success(res, {
-      posts,
+      posts: postsWithLikeStatus,
       pagination: buildPaginationMeta(total, page, limit),
     });
   } catch (error) {

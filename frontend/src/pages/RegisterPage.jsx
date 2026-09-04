@@ -4,7 +4,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import useUsernameAvailability from '../hooks/useUsernameAvailability';
-import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { CheckCircle2, XCircle, Loader2, HelpCircle } from 'lucide-react';
 
 export default function RegisterPage() {
   const { register } = useAuth();
@@ -14,7 +14,9 @@ export default function RegisterPage() {
   const [form, setForm] = useState({ 
     contact: '', 
     password: '', 
-    dateOfBirth: '',
+    dobDay: '',
+    dobMonth: '',
+    dobYear: '',
     displayName: '',
     username: '' 
   });
@@ -28,10 +30,16 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.contact || !form.password || !form.dateOfBirth || !form.username) return;
+    if (!form.contact || !form.password || !form.dobDay || !form.dobMonth || !form.dobYear || !form.username) return;
+    
+    // Construct YYYY-MM-DD
+    const month = String(form.dobMonth).padStart(2, '0');
+    const day = String(form.dobDay).padStart(2, '0');
+    const dateOfBirth = `${form.dobYear}-${month}-${day}`;
+    
     setLoading(true);
     try {
-      await register(form);
+      await register({ ...form, dateOfBirth });
       toast.success('Account created! Welcome!');
       navigate('/feed');
     } catch (err) {
@@ -107,17 +115,52 @@ export default function RegisterPage() {
               </div>
 
               <div className="form-group" style={{ marginBottom: '1rem' }}>
-                <label className="form-label" htmlFor="dateOfBirth" style={{ fontSize: '0.85rem' }}>Date of birth</label>
-                <input 
-                  id="dateOfBirth" 
-                  name="dateOfBirth" 
-                  className="form-input" 
-                  type="date"
-                  max={new Date().toISOString().split("T")[0]}
-                  value={form.dateOfBirth} 
-                  onChange={handleChange} 
-                  required 
-                />
+                <label className="form-label" style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  Date of birth 
+                  <HelpCircle size={14} style={{ color: 'var(--text-secondary)', cursor: 'help' }} />
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <select 
+                    name="dobDay" 
+                    className="form-input" 
+                    value={form.dobDay} 
+                    onChange={handleChange} 
+                    required
+                    style={{ flex: 1, padding: '0.75rem', appearance: 'none', background: 'var(--bg-primary) url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'16\' height=\'16\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpolyline points=\'6 9 12 15 18 9\'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 0.75rem center/16px' }}
+                  >
+                    <option value="" disabled>Day</option>
+                    {[...Array(31)].map((_, i) => <option key={i+1} value={i+1}>{i+1}</option>)}
+                  </select>
+                  
+                  <select 
+                    name="dobMonth" 
+                    className="form-input" 
+                    value={form.dobMonth} 
+                    onChange={handleChange} 
+                    required
+                    style={{ flex: 1, padding: '0.75rem', appearance: 'none', background: 'var(--bg-primary) url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'16\' height=\'16\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpolyline points=\'6 9 12 15 18 9\'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 0.75rem center/16px' }}
+                  >
+                    <option value="" disabled>Month</option>
+                    {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((m, i) => (
+                      <option key={m} value={i+1}>{m}</option>
+                    ))}
+                  </select>
+
+                  <select 
+                    name="dobYear" 
+                    className="form-input" 
+                    value={form.dobYear} 
+                    onChange={handleChange} 
+                    required
+                    style={{ flex: 1, padding: '0.75rem', appearance: 'none', background: 'var(--bg-primary) url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'16\' height=\'16\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpolyline points=\'6 9 12 15 18 9\'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 0.75rem center/16px' }}
+                  >
+                    <option value="" disabled>Year</option>
+                    {[...Array(100)].map((_, i) => {
+                      const year = new Date().getFullYear() - i;
+                      return <option key={year} value={year}>{year}</option>;
+                    })}
+                  </select>
+                </div>
               </div>
 
               <div className="form-group" style={{ marginBottom: '1rem' }}>

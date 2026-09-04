@@ -92,28 +92,43 @@ async function followUser(req, res, next) {
     const existing = await Interaction.findOne({
       user: userId,
       targetUser: targetUserId,
-      type: 'follow',
+      type: { $in: ['follow', 'follow_request'] },
     });
 
     if (existing) {
-      return ApiResponse.conflict(res, 'Already following this user', 'ALREADY_FOLLOWING');
+      if (existing.type === 'follow') {
+        return ApiResponse.conflict(res, 'Already following this user', 'ALREADY_FOLLOWING');
+      } else {
+        return ApiResponse.conflict(res, 'Follow request already sent', 'ALREADY_REQUESTED');
+      }
     }
 
-    await Interaction.create({
-      user: userId,
-      targetUser: targetUserId,
-      type: 'follow',
-    });
+    if (targetUser.preferences && targetUser.preferences.isPrivate) {
+      // Send a follow request instead
+      await Interaction.create({
+        user: userId,
+        targetUser: targetUserId,
+        type: 'follow_request',
+      });
+      await notificationService.notifyFollowRequest(userId, targetUserId);
+      return ApiResponse.success(res, { following: false, requested: true }, 'Follow request sent');
+    } else {
+      // Instant follow
+      await Interaction.create({
+        user: userId,
+        targetUser: targetUserId,
+        type: 'follow',
+      });
 
-    // Update denormalized counts
-    await Promise.all([
-      User.findByIdAndUpdate(userId, { $inc: { followingCount: 1 } }),
-      User.findByIdAndUpdate(targetUserId, { $inc: { followersCount: 1 } }),
-    ]);
+      // Update denormalized counts
+      await Promise.all([
+        User.findByIdAndUpdate(userId, { $inc: { followingCount: 1 } }),
+        User.findByIdAndUpdate(targetUserId, { $inc: { followersCount: 1 } }),
+      ]);
 
-    await notificationService.notifyFollow(userId, targetUserId);
-
-    return ApiResponse.success(res, { following: true }, 'User followed');
+      await notificationService.notifyFollow(userId, targetUserId);
+      return ApiResponse.success(res, { following: true, requested: false }, 'User followed');
+    }
   } catch (error) {
     next(error);
   }
@@ -130,22 +145,112 @@ async function unfollowUser(req, res, next) {
     const existing = await Interaction.findOneAndDelete({
       user: userId,
       targetUser: targetUserId,
-      type: 'follow',
+      type: { $in: ['follow', 'follow_request'] },
     });
 
     if (!existing) {
       return ApiResponse.notFound(res, 'Follow relationship not found');
     }
 
-    await Promise.all([
-      User.findByIdAndUpdate(userId, { $inc: { followingCount: -1 } }),
-      User.findByIdAndUpdate(targetUserId, { $inc: { followersCount: -1 } }),
-    ]);
+    // Only decrement counts if it was an actual follow, not just a request
+    if (existing.type === 'follow') {
+      await Promise.all([
+        User.findByIdAndUpdate(userId, { $inc: { followingCount: -1 } }),
+        User.findByIdAndUpdate(targetUserId, { $inc: { followersCount: -1 } }),
+      ]);
+    }
 
-    return ApiResponse.success(res, { following: false }, 'User unfollowed');
+    return ApiResponse.success(res, { following: false, requested: false }, 'User unfollowed');
   } catch (error) {
     next(error);
   }
 }
 
-module.exports = { likePost, unlikePost, followUser, unfollowUser };
+/**
+ * GET /api/v1/users/follow-requests
+ */
+async function getFollowRequests(req, res, next) {
+  try {
+    const userId = req.user._id;
+    const requests = await Interaction.find({
+      targetUser: userId,
+      type: 'follow_request'
+    })
+      .sort({ createdAt: -1 })
+      .populate('user', 'username displayName avatar bio');
+
+    return ApiResponse.success(res, {
+      requests: requests.map(r => ({
+        _id: r._id,
+        user: r.user,
+        createdAt: r.createdAt
+      }))
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * POST /api/v1/users/:id/accept-follow
+ */
+async function acceptFollowRequest(req, res, next) {
+  try {
+    const requesterId = req.params.id; // user who sent the request
+    const userId = req.user._id;
+
+    const existingRequest = await Interaction.findOne({
+      user: requesterId,
+      targetUser: userId,
+      type: 'follow_request'
+    });
+
+    if (!existingRequest) {
+      return ApiResponse.notFound(res, 'Follow request not found');
+    }
+
+    // Upgrade to follow
+    existingRequest.type = 'follow';
+    await existingRequest.save();
+
+    await Promise.all([
+      User.findByIdAndUpdate(requesterId, { $inc: { followingCount: 1 } }),
+      User.findByIdAndUpdate(userId, { $inc: { followersCount: 1 } }),
+    ]);
+
+    await notificationService.notifyAcceptedFollow(userId, requesterId);
+
+    // Also delete any old notification for the request, or just let them stack
+    // (We'll just let them stack for now)
+
+    return ApiResponse.success(res, null, 'Follow request accepted');
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * POST /api/v1/users/:id/reject-follow
+ */
+async function rejectFollowRequest(req, res, next) {
+  try {
+    const requesterId = req.params.id;
+    const userId = req.user._id;
+
+    const existingRequest = await Interaction.findOneAndDelete({
+      user: requesterId,
+      targetUser: userId,
+      type: 'follow_request'
+    });
+
+    if (!existingRequest) {
+      return ApiResponse.notFound(res, 'Follow request not found');
+    }
+
+    return ApiResponse.success(res, null, 'Follow request rejected');
+  } catch (error) {
+    next(error);
+  }
+}
+
+module.exports = { likePost, unlikePost, followUser, unfollowUser, getFollowRequests, acceptFollowRequest, rejectFollowRequest };

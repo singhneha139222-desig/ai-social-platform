@@ -3,7 +3,7 @@ import { Heart, MessageCircle, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { postAPI } from '../services/api';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
@@ -19,6 +19,11 @@ export default function PostCard({ post, onDelete, onLikeToggle }) {
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState('');
   const [loadingComment, setLoadingComment] = useState(false);
+
+  useEffect(() => {
+    setLiked(post.isLiked || false);
+    setLikesCount(post.likesCount || 0);
+  }, [post.isLiked, post.likesCount]);
 
   const isAuthor = user?.id === (post.author?._id || post.author);
   const initial = post.author?.displayName?.[0] || post.author?.username?.[0] || '?';

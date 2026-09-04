@@ -85,16 +85,29 @@ const profileUpdateValidation = [
     .isIn(['Male', 'Female', 'Custom', 'Prefer not to say'])
     .withMessage('Invalid gender selection'),
   body('website')
-    .optional()
+    .optional({ checkFalsy: true })
     .trim()
     .isURL()
-    .withMessage('Invalid website URL')
-    .or()
-    .isEmpty(),
+    .withMessage('Invalid website URL'),
   body('preferences')
     .optional()
     .isObject()
     .withMessage('Preferences must be an object'),
+];
+
+const forgotPasswordValidation = [
+  body('email')
+    .trim()
+    .notEmpty()
+    .withMessage('Email is required')
+    .isEmail()
+    .withMessage('Please provide a valid email address'),
+];
+
+const resetPasswordValidation = [
+  body('password')
+    .isLength({ min: CONTENT_LIMITS.PASSWORD_MIN_LENGTH })
+    .withMessage(`Password must be at least ${CONTENT_LIMITS.PASSWORD_MIN_LENGTH} characters`),
 ];
 
 module.exports = {
@@ -103,4 +116,6 @@ module.exports = {
   postValidation,
   commentValidation,
   profileUpdateValidation,
+  forgotPasswordValidation,
+  resetPasswordValidation,
 };
