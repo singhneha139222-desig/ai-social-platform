@@ -83,7 +83,6 @@ const userSchema = new mongoose.Schema(
         enum: ['positive', 'neutral', 'negative', 'all'],
         default: 'all',
       },
-      showThreadsBadge: { type: Boolean, default: true },
       isAICreator: { type: Boolean, default: false },
       showAccountSuggestions: { type: Boolean, default: true },
       isPrivate: { type: Boolean, default: false },
