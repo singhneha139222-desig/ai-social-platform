@@ -58,5 +58,5 @@ backend/src/scripts/seed_performance.js
 backend/src/utils/eventLoopMonitor.js
 services/ai-service/measure_inference.py
 frontend/test-socket*
-package.json
-package-lock.json
+/package.json
+/package-lock.json
