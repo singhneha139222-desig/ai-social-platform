@@ -41,3 +41,22 @@ htmlcov/
 
 # Docker
 docker-data/
+
+# FYP testing and generated files
+scratch/
+reports/
+performance/
+docs/
+walkthrough.md
+implementation_plan.md
+impl_plan.md
+task.md
+test-a-feed-results.json
+test-c-ai-results.json
+backend/start-no-limit.js
+backend/src/scripts/seed_performance.js
+backend/src/utils/eventLoopMonitor.js
+services/ai-service/measure_inference.py
+frontend/test-socket*
+/package.json
+/package-lock.json

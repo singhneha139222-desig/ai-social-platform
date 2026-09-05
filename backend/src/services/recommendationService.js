@@ -60,26 +60,7 @@ const {
  * Only posts with moderationStatus ∈ PUBLIC_STATUSES are candidates.
  */
 
-// --- Text processing utilities ---
-
-/**
- * Tokenize and compute word frequency map for a text.
- * Lowercases, strips punctuation, removes short words.
- */
-function wordFrequency(text) {
-  if (!text) return {};
-  const words = text
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, '')
-    .split(/\s+/)
-    .filter((w) => w.length > 2);
-
-  const freq = {};
-  for (const word of words) {
-    freq[word] = (freq[word] || 0) + 1;
-  }
-  return freq;
-}
+const { wordFrequency } = require('../utils/textProcessing');
 
 /**
  * Cosine similarity between two word frequency maps.
@@ -145,10 +126,11 @@ function computeSentimentScore(sentiment) {
 // --- Main recommendation function ---
 
 /**
+/**
  * Generate personalized recommendations for a user.
  * @param {string} userId - The user requesting recommendations
  * @param {Object} options - { page, limit, excludePostIds }
- * @returns {{ posts: Array, pagination: Object }}
+ * @returns {{ posts: Array, pagination: Object, metrics: Object }}
  */
 async function getRecommendations(userId, options = {}) {
   const {
@@ -160,15 +142,18 @@ async function getRecommendations(userId, options = {}) {
   const userIdStr = userId.toString();
 
   // 1. Get user's interaction history
+  const startInteractionDb = Date.now();
   const userInteractions = await Interaction.find({
     user: userId,
     type: { $in: [INTERACTION_TYPES.LIKE, INTERACTION_TYPES.COMMENT] },
-  }).lean();
+    post: { $ne: null },
+  }).populate('post').lean();
+  let interactionDbMs = Date.now() - startInteractionDb;
 
   const userLikedPostIds = new Set(
     userInteractions
       .filter((i) => i.type === INTERACTION_TYPES.LIKE && i.post)
-      .map((i) => i.post.toString())
+      .map((i) => i.post._id.toString())
   );
 
   const isNewUser = userInteractions.length < RECOMMENDATION_CONFIG.COLD_START_THRESHOLD;
@@ -181,19 +166,32 @@ async function getRecommendations(userId, options = {}) {
   const followedUserIds = followInteractions.map((i) => i.targetUser);
 
   // 3. Get candidate posts (published/approved, not the user's own, not already interacted)
+  const startCandidateDb = Date.now();
   const excludeIds = [...excludePostIds, ...Array.from(userLikedPostIds)];
   const candidates = await Post.find({
     moderationStatus: { $in: PUBLIC_STATUSES },
     author: { $ne: userId },
     _id: { $nin: excludeIds },
   })
+    .select('author content likesCount commentsCount createdAt sentiment wordFrequencies _id')
     .sort({ createdAt: -1 })
     .limit(RECOMMENDATION_CONFIG.CANDIDATE_LIMIT)
     .populate('author', 'username displayName avatar')
     .lean();
+  const candidateDbMs = Date.now() - startCandidateDb;
+
+  const metricsTemplate = {
+    candidate_db_ms: candidateDbMs,
+    interaction_db_ms: interactionDbMs,
+    collaborative_ms: 0,
+    content_similarity_ms: 0,
+    ranking_ms: 0,
+    candidate_count: candidates.length,
+    interaction_count: 0
+  };
 
   if (candidates.length === 0) {
-    return { posts: [], pagination: { total: 0, page, limit, totalPages: 0 } };
+    return { posts: [], pagination: { total: 0, page, limit, totalPages: 0 }, metrics: metricsTemplate };
   }
 
   // 4. Compute max engagement for normalization
@@ -214,9 +212,11 @@ async function getRecommendations(userId, options = {}) {
       return { ...post, recommendationScore: score };
     });
 
+    const startRanking = Date.now();
     scored.sort((a, b) => b.recommendationScore - a.recommendationScore);
     const start = (page - 1) * limit;
     const paged = scored.slice(start, start + limit);
+    metricsTemplate.ranking_ms = Date.now() - startRanking;
 
     return {
       posts: paged,
@@ -226,6 +226,7 @@ async function getRecommendations(userId, options = {}) {
         limit,
         totalPages: Math.ceil(scored.length / limit),
       },
+      metrics: metricsTemplate
     };
   }
 
@@ -233,40 +234,46 @@ async function getRecommendations(userId, options = {}) {
   const likedPosts = await Post.find({
     _id: { $in: Array.from(userLikedPostIds) },
   })
-    .select('content')
+    .select('content wordFrequencies')
     .lean();
 
   const userProfile = {};
   for (const lp of likedPosts) {
-    const freq = wordFrequency(lp.content);
+    // Phase 4/7: Use precomputed wordFrequencies if they exist to avoid dynamic processing
+    const freq = (lp.wordFrequencies && Object.keys(lp.wordFrequencies).length > 0)
+      ? lp.wordFrequencies
+      : wordFrequency(lp.content);
+      
     for (const [word, count] of Object.entries(freq)) {
       userProfile[word] = (userProfile[word] || 0) + count;
     }
   }
 
   // 7. Build collaborative context: for each candidate, find who liked it
+  const startCollabDb = Date.now();
   const candidateIds = candidates.map((c) => c._id);
-  const allLikesOnCandidates = await Interaction.find({
-    post: { $in: candidateIds },
-    type: INTERACTION_TYPES.LIKE,
-    user: { $ne: userId },
-  }).lean();
+  
+  // OPTIMIZATION: Use MongoDB aggregation to find the top 30 unique users who have liked 
+  // the current candidate posts. This prevents pulling thousands of Interaction documents into Node.js memory.
+  const topLikersAgg = await Interaction.aggregate([
+    { $match: { post: { $in: candidateIds }, type: INTERACTION_TYPES.LIKE, user: { $ne: userId } } },
+    { $group: { _id: '$user', count: { $sum: 1 } } },
+    { $sort: { count: -1 } },
+    { $limit: 30 }
+  ]);
+  
+  const uniqueLikerIds = topLikersAgg.map(u => u._id);
 
-  // Group likes by post
-  const postLikers = {};
-  for (const like of allLikesOnCandidates) {
-    const pid = like.post.toString();
-    if (!postLikers[pid]) postLikers[pid] = [];
-    postLikers[pid].push(like.user.toString());
-  }
-
-  // Get liked posts for each liker (for Jaccard computation)
-  const uniqueLikerIds = [...new Set(Object.values(postLikers).flat())];
+  // Get all liked posts for these specific top likers to compute Jaccard similarity
+  // We project only the necessary fields (user and post)
   const likerInteractions = await Interaction.find({
     user: { $in: uniqueLikerIds },
     type: INTERACTION_TYPES.LIKE,
     post: { $ne: null },
   }).lean();
+  
+  metricsTemplate.interaction_count = likerInteractions.length;
+  metricsTemplate.collaborative_ms = Date.now() - startCollabDb;
 
   const likerProfiles = {};
   for (const interaction of likerInteractions) {
@@ -275,22 +282,42 @@ async function getRecommendations(userId, options = {}) {
     likerProfiles[uid].add(interaction.post.toString());
   }
 
+  // OPTIMIZATION: Use precomputed wordFrequencies or local cache for dynamic ones
+  const freqCache = new Map();
+  const getFreq = (post) => {
+    if (post.wordFrequencies && Object.keys(post.wordFrequencies).length > 0) {
+      return post.wordFrequencies;
+    }
+    const content = post.content || '';
+    if (freqCache.has(content)) return freqCache.get(content);
+    if (freqCache.size > 1000) freqCache.clear();
+    const res = wordFrequency(content);
+    freqCache.set(content, res);
+    return res;
+  };
+
+  const startComp = Date.now();
   // 8. Score each candidate
   const weights = RECOMMENDATION_WEIGHTS;
   const scored = candidates.map((post) => {
     const postId = post._id.toString();
-    const postVec = wordFrequency(post.content);
+    const postVec = getFreq(post);
 
     // Content score: cosine similarity between user profile and post
     const contentScore = cosineSimilarity(userProfile, postVec);
 
     // Collaborative score: mean Jaccard similarity with likers of this post
+    // Since we aggregated top likers globally across candidates, we check which of those likers liked THIS post
     let collaborativeScore = 0;
-    const likers = postLikers[postId] || [];
+    const likers = uniqueLikerIds.filter(likerId => {
+      const set = likerProfiles[likerId.toString()];
+      return set && set.has(postId);
+    });
+    
     if (likers.length > 0) {
       let totalJaccard = 0;
       for (const likerId of likers) {
-        const likerSet = likerProfiles[likerId] || new Set();
+        const likerSet = likerProfiles[likerId.toString()] || new Set();
         totalJaccard += jaccardSimilarity(userLikedPostIds, likerSet);
       }
       collaborativeScore = totalJaccard / likers.length;
@@ -333,13 +360,16 @@ async function getRecommendations(userId, options = {}) {
       },
     };
   });
-
   // 9. Sort by final score descending
+  const startRanking = Date.now();
   scored.sort((a, b) => b.recommendationScore - a.recommendationScore);
 
   // 10. Paginate
   const start = (page - 1) * limit;
   const paged = scored.slice(start, start + limit);
+  
+  metricsTemplate.ranking_ms = Date.now() - startRanking;
+  metricsTemplate.content_similarity_ms = Date.now() - startComp - metricsTemplate.ranking_ms;
 
   return {
     posts: paged,
@@ -349,6 +379,7 @@ async function getRecommendations(userId, options = {}) {
       limit,
       totalPages: Math.ceil(scored.length / limit),
     },
+    metrics: metricsTemplate
   };
 }
 

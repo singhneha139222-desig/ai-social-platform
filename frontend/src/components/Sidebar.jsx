@@ -1,6 +1,8 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { Home, Search, Compass, Bell, User, Settings, Shield, LogOut, PlusSquare, Menu, X, MessageCircle, MoreHorizontal, Bookmark, AlertCircle, PlaySquare, Heart, Plus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useSocket } from '../context/SocketContext';
+import { useToast } from '../context/ToastContext';
 import { useState, useEffect, useRef } from 'react';
 import { notificationAPI } from '../services/api';
 
@@ -15,12 +17,38 @@ export default function Sidebar() {
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const moreMenuRef = useRef(null);
+  const { socket } = useSocket();
+  const toast = useToast();
 
   useEffect(() => {
     notificationAPI.getNotifications(1).then((res) => {
       setUnreadCount(res.data.data.unreadCount || 0);
     }).catch(() => {});
   }, [location]);
+
+  useEffect(() => {
+    if (!socket) return;
+    
+    const handleNewNotification = (notification) => {
+      setUnreadCount(prev => prev + 1);
+      
+      const actorName = notification.sender?.displayName || notification.sender?.username || 'Someone';
+      const messages = {
+        like: 'liked your post',
+        comment: 'commented on your post',
+        follow: 'started following you',
+        moderation: 'moderation update'
+      };
+      
+      toast.success(`${actorName} ${messages[notification.type] || 'sent a notification'}`, { duration: 3000 });
+    };
+
+    socket.on('notification:new', handleNewNotification);
+
+    return () => {
+      socket.off('notification:new', handleNewNotification);
+    };
+  }, [socket, toast]);
 
   // Close more menu when clicking outside
   useEffect(() => {

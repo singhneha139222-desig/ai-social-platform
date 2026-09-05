@@ -13,22 +13,10 @@ logger = logging.getLogger(__name__)
 moderation_bp = Blueprint('moderation', __name__)
 
 
+import time
+
 @moderation_bp.route('/api/v1/moderation/toxicity', methods=['POST'])
 def analyze_toxicity():
-    """
-    Analyze text for toxicity.
-
-    Request:
-        { "text": "example text" }
-
-    Response:
-        {
-            "toxicity_score": 0.12,
-            "categories": { "toxic": 0.12, ... },
-            "decision": "publish",
-            "model": "unitary/toxic-bert"
-        }
-    """
     if not toxicity_detector.is_loaded:
         return jsonify({
             'error': 'Toxicity model not loaded',
@@ -50,7 +38,11 @@ def analyze_toxicity():
         }), 400
 
     try:
+        t0 = time.perf_counter()
         result = toxicity_detector.predict(text)
+        t1 = time.perf_counter()
+        inference_ms = (t1 - t0) * 1000
+        logger.info(f"[AIMetric] toxicity_inference_ms={inference_ms:.2f}")
         return jsonify(result), 200
     except Exception as e:
         logger.error(f"Toxicity prediction error: {e}")

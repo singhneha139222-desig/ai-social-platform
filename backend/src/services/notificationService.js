@@ -1,5 +1,6 @@
 const Notification = require('../models/Notification');
 const logger = require('../utils/logger');
+const { getIo } = require('../utils/socket');
 
 /**
  * Notification Service.
@@ -18,6 +19,20 @@ async function createNotification({ recipient, sender, type, post = null, messag
       post,
       message,
     });
+
+    // Populate sender details for real-time emission
+    await notification.populate('sender', 'username displayName avatar profilePicture');
+    await notification.populate('post', 'content');
+
+    // Emit Socket.IO event to the recipient's private room
+    try {
+      const io = getIo();
+      io.to(`user:${recipient.toString()}`).emit('notification:new', notification);
+    } catch (socketError) {
+      // Log but don't fail the REST request if Socket.IO isn't ready/fails
+      logger.error('Socket emission failed:', socketError.message);
+    }
+
     return notification;
   } catch (error) {
     // Non-critical — log and continue

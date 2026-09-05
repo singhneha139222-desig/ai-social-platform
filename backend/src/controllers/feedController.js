@@ -4,6 +4,7 @@ const ApiResponse = require('../utils/apiResponse');
 const { parsePagination, buildPaginationMeta } = require('../utils/pagination');
 const { PUBLIC_STATUSES } = require('../utils/constants');
 const recommendationService = require('../services/recommendationService');
+const feedCache = require('../services/feedCacheService');
 
 /**
  * GET /api/v1/feed
@@ -12,9 +13,19 @@ const recommendationService = require('../services/recommendationService');
  * Never shows rejected/flagged/removed content.
  */
 async function getFeed(req, res, next) {
+  const start_total = Date.now();
+  const feedMetrics = {};
   try {
     const userId = req.user._id;
     const { page, limit } = parsePagination(req.query);
+
+    // Cache lookup
+    const cachedFeed = feedCache.get(userId.toString(), page, limit);
+    if (cachedFeed) {
+      feedMetrics.total_ms = Date.now() - start_total;
+      console.log(`[FeedMetric] cache_hits=1 cache_misses=0 total_ms=${feedMetrics.total_ms}`);
+      return ApiResponse.success(res, cachedFeed);
+    }
 
     // Get posts from followed users
     const followInteractions = await Interaction.find({
@@ -32,14 +43,19 @@ async function getFeed(req, res, next) {
       .limit(50)
       .populate('author', 'username displayName avatar')
       .lean();
+    feedMetrics.follow_db_ms = Date.now() - start_total;
 
     // Get recommended posts
+    const start_rec = Date.now();
     const recommendations = await recommendationService.getRecommendations(userId, {
       page: 1,
       limit: 50,
     });
+    feedMetrics.recommendation_ms = Date.now() - start_rec;
+    const recMetrics = recommendations.metrics || {};
 
     // Merge and deduplicate
+    const start_merge = Date.now();
     const seen = new Set();
     const allPosts = [];
 
@@ -84,8 +100,10 @@ async function getFeed(req, res, next) {
 
     // Sort by recommendation score
     allPosts.sort((a, b) => (b.recommendationScore || 0) - (a.recommendationScore || 0));
+    feedMetrics.merge_ms = Date.now() - start_merge;
 
     // Check which posts the user has liked
+    const start_serialization = Date.now();
     const postIds = allPosts.map((p) => p._id);
     const userLikes = await Interaction.find({
       user: userId,
@@ -102,11 +120,33 @@ async function getFeed(req, res, next) {
     // Paginate
     const start = (page - 1) * limit;
     const paged = postsWithLikeStatus.slice(start, start + limit);
+    
+    feedMetrics.serialization_ms = Date.now() - start_serialization;
+    feedMetrics.total_ms = Date.now() - start_total;
+    
+    // Output precisely as requested for profiling
+    console.log(`[FeedMetric]
+candidate_db_ms=${recMetrics.candidate_db_ms || 0}
+interaction_db_ms=${recMetrics.interaction_db_ms || 0}
+collaborative_ms=${recMetrics.collaborative_ms || 0}
+content_similarity_ms=${recMetrics.content_similarity_ms || 0}
+ranking_ms=${(recMetrics.ranking_ms || 0) + feedMetrics.merge_ms}
+serialization_ms=${feedMetrics.serialization_ms}
+total_ms=${feedMetrics.total_ms}
+candidate_count=${recMetrics.candidate_count || 0}
+interaction_count=${recMetrics.interaction_count || 0}
+cache_hits=0
+cache_misses=1`);
 
-    return ApiResponse.success(res, {
+    const responseData = {
       posts: paged,
       pagination: buildPaginationMeta(postsWithLikeStatus.length, page, limit),
-    });
+    };
+    
+    // Save to cache
+    feedCache.set(userId.toString(), page, limit, responseData);
+
+    return ApiResponse.success(res, responseData);
   } catch (error) {
     next(error);
   }

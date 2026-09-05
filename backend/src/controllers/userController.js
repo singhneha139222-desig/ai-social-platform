@@ -42,18 +42,17 @@ async function getProfile(req, res, next) {
       }
     }
 
+    const Post = require('../models/Post'); // Import Post model inside or at top level. Let's do it at top level if possible, but doing it here is safer if it's not required at top level. Wait, I'll require it at the top level or inside the function. Let's require it inside to avoid circular dependencies just in case.
+
+    const postsCount = await require('../models/Post').countDocuments({ author: user._id });
+
     const responseUser = {
       ...user.toJSON(),
       isFollowing,
       hasRequested,
-      isPrivateAndNotFollowing
+      isPrivateAndNotFollowing,
+      postsCount
     };
-
-    if (isPrivateAndNotFollowing) {
-      // Mask counts for privacy
-      responseUser.followersCount = 0;
-      responseUser.followingCount = 0;
-    }
 
     return ApiResponse.success(res, { user: responseUser });
   } catch (error) {

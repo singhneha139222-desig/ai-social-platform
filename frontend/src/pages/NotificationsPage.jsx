@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { notificationAPI, userAPI } from '../services/api';
 import { useToast } from '../context/ToastContext';
+import { useSocket } from '../context/SocketContext';
 import { formatDistanceToNow } from 'date-fns';
 import { Bell, Heart, MessageCircle, UserPlus, Shield, CheckCheck } from 'lucide-react';
 
@@ -15,6 +16,7 @@ export default function NotificationsPage() {
   const [unreadCount, setUnreadCount] = useState(0);
   const toast = useToast();
   const navigate = useNavigate();
+  const { socket } = useSocket();
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
   const BASE_URL = API_URL.replace('/api/v1', '');
@@ -30,6 +32,25 @@ export default function NotificationsPage() {
     }).catch(() => toast.error('Failed to load notifications'))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (!socket) return;
+    
+    const handleNewNotification = (notification) => {
+      setNotifications(prev => {
+        // Prevent duplicates
+        if (prev.some(n => n._id === notification._id)) return prev;
+        return [notification, ...prev];
+      });
+      setUnreadCount(prev => prev + 1);
+    };
+
+    socket.on('notification:new', handleNewNotification);
+
+    return () => {
+      socket.off('notification:new', handleNewNotification);
+    };
+  }, [socket]);
 
   const markAllRead = async () => {
     try {
