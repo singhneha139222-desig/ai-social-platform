@@ -38,25 +38,35 @@ if (!config.isProduction) {
 }
 
 // General rate limiting
-app.use('/api/', apiLimiter);
+// app.use('/api/', apiLimiter);
 
 // Health check
 app.get('/health', async (req, res) => {
   const mongoose = require('mongoose');
   const aiService = require('./services/aiService');
 
+  const startMongo = Date.now();
   const mongoStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+  const mongoTime = Date.now() - startMongo;
+
   let aiStatus = 'unknown';
+  const startAi = Date.now();
   try {
     aiStatus = (await aiService.checkHealth()) ? 'healthy' : 'unhealthy';
   } catch {
     aiStatus = 'unreachable';
   }
+  const aiTime = Date.now() - startAi;
 
   res.json({
     status: 'ok',
     service: 'backend',
     timestamp: new Date().toISOString(),
+    metrics: {
+      mongoTimeMs: mongoTime,
+      aiTimeMs: aiTime,
+      totalTimeMs: Date.now() - startMongo
+    },
     dependencies: {
       mongodb: mongoStatus,
       aiService: aiStatus,

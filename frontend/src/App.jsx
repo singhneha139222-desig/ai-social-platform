@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
+import { SocketProvider } from './context/SocketContext';
 import ProtectedRoute, { AdminRoute } from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import LoginPage from './pages/LoginPage';
@@ -28,52 +29,54 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <ToastProvider>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+        <SocketProvider>
+          <ToastProvider>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
 
-            {/* Protected routes with sidebar layout */}
-            <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-              <Route path="/feed" element={<FeedPage />} />
-              <Route path="/explore" element={<ExplorePage />} />
-              <Route path="/create-post" element={<CreatePostPage />} />
-              <Route path="/post/:id" element={<PostPage />} />
-              <Route path="/profile/:username" element={<ProfilePage />} />
-              <Route path="/notifications" element={<NotificationsPage />} />
-              
-              {/* Messages Placeholder */}
-              <Route path="/messages" element={<ComingSoonSettings title="Messages" description="Direct messaging is rolling out soon." />} />
-              
-              {/* Settings Routes */}
-              <Route path="/settings" element={<SettingsLayout />}>
-                <Route index element={<Navigate to="edit-profile" replace />} />
-                <Route path="edit-profile" element={<EditProfile />} />
-                <Route path="notifications" element={<NotificationsSettings />} />
-                <Route path="privacy" element={<PrivacySettings />} />
-                <Route path="close-friends" element={<ComingSoonSettings title="Close Friends" />} />
-                <Route path="interactions" element={<ComingSoonSettings title="Interactions" />} />
-                <Route path="content-preferences" element={<ComingSoonSettings title="Content Preferences" />} />
-                <Route path="language" element={<ComingSoonSettings title="Language" />} />
-                <Route path="help" element={<HelpSettings />} />
-                <Route path="saved" element={<ComingSoonSettings title="Saved" />} />
+              {/* Protected routes with sidebar layout */}
+              <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+                <Route path="/feed" element={<FeedPage />} />
+                <Route path="/explore" element={<ExplorePage />} />
+                <Route path="/create-post" element={<CreatePostPage />} />
+                <Route path="/post/:id" element={<PostPage />} />
+                <Route path="/profile/:username" element={<ProfilePage />} />
+                <Route path="/notifications" element={<NotificationsPage />} />
+                
+                {/* Messages Placeholder */}
+                <Route path="/messages" element={<ComingSoonSettings title="Messages" description="Direct messaging is rolling out soon." />} />
+                
+                {/* Settings Routes */}
+                <Route path="/settings" element={<SettingsLayout />}>
+                  <Route index element={<Navigate to="edit-profile" replace />} />
+                  <Route path="edit-profile" element={<EditProfile />} />
+                  <Route path="notifications" element={<NotificationsSettings />} />
+                  <Route path="privacy" element={<PrivacySettings />} />
+                  <Route path="close-friends" element={<ComingSoonSettings title="Close Friends" />} />
+                  <Route path="interactions" element={<ComingSoonSettings title="Interactions" />} />
+                  <Route path="content-preferences" element={<ComingSoonSettings title="Content Preferences" />} />
+                  <Route path="language" element={<ComingSoonSettings title="Language" />} />
+                  <Route path="help" element={<HelpSettings />} />
+                  <Route path="saved" element={<ComingSoonSettings title="Saved" />} />
+                </Route>
               </Route>
-            </Route>
 
-            {/* Admin routes */}
-            <Route element={<AdminRoute><Layout /></AdminRoute>}>
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/admin/moderation" element={<AdminModeration />} />
-            </Route>
+              {/* Admin routes */}
+              <Route element={<AdminRoute><Layout /></AdminRoute>}>
+                <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/admin/moderation" element={<AdminModeration />} />
+              </Route>
 
-            {/* Default redirect */}
-            <Route path="/" element={<Navigate to="/feed" replace />} />
-            <Route path="*" element={<Navigate to="/feed" replace />} />
-          </Routes>
-        </ToastProvider>
+              {/* Default redirect */}
+              <Route path="/" element={<Navigate to="/feed" replace />} />
+              <Route path="*" element={<Navigate to="/feed" replace />} />
+            </Routes>
+          </ToastProvider>
+        </SocketProvider>
       </AuthProvider>
     </BrowserRouter>
   );

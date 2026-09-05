@@ -44,6 +44,7 @@ Limitations:
   - May not capture domain-specific sentiment (e.g., financial, medical)
 """
 import logging
+import time
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
@@ -126,19 +127,27 @@ class SentimentAnalyzer:
                 'model': self.model_name
             }
 
+        t0 = time.perf_counter()
         # Tokenize
         inputs = self.tokenizer(
             text,
             return_tensors='pt',
             truncation=True,
-            max_length=512,
+            max_length=128, # Phase 12: Reduced from 512 for performance
             padding=True
         ).to(self.device)
+        t_token = time.perf_counter()
+        tokenization_ms = (t_token - t0) * 1000
 
         # Inference
         with torch.no_grad():
             outputs = self.model(**inputs)
+            t_infer = time.perf_counter()
+            model_inference_ms = (t_infer - t_token) * 1000
+            
             probabilities = torch.softmax(outputs.logits, dim=-1).squeeze().cpu().tolist()
+            t_post = time.perf_counter()
+            tensor_ms = (t_post - t_infer) * 1000
 
         # Handle single-dimension output
         if isinstance(probabilities, float):
@@ -160,6 +169,11 @@ class SentimentAnalyzer:
         # Get the predicted label (highest probability)
         predicted_label = max(all_scores, key=all_scores.get)
         predicted_score = all_scores[predicted_label]
+        
+        t_final = time.perf_counter()
+        postprocess_ms = (t_final - t_post) * 1000
+        
+        logger.info(f"[AIMetric] sentiment_tokenization_ms={tokenization_ms:.2f} model_inference_ms={model_inference_ms:.2f} tensor_ms={tensor_ms:.2f} postprocess_ms={postprocess_ms:.2f}")
 
         return {
             'label': predicted_label,

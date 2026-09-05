@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -25,6 +25,16 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   
   const { status: usernameStatus, suggestions, error: usernameError } = useUsernameAvailability(form.username);
+
+  const daysInMonth = (form.dobMonth && form.dobYear) 
+    ? new Date(parseInt(form.dobYear), parseInt(form.dobMonth), 0).getDate() 
+    : (form.dobMonth ? new Date(2024, parseInt(form.dobMonth), 0).getDate() : 31);
+
+  useEffect(() => {
+    if (form.dobDay && parseInt(form.dobDay) > daysInMonth) {
+      setForm(prev => ({ ...prev, dobDay: '' }));
+    }
+  }, [daysInMonth, form.dobDay]);
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -129,7 +139,7 @@ export default function RegisterPage() {
                     style={{ flex: 1, padding: '0.75rem', appearance: 'none', background: 'var(--bg-primary) url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'16\' height=\'16\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpolyline points=\'6 9 12 15 18 9\'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 0.75rem center/16px' }}
                   >
                     <option value="" disabled>Day</option>
-                    {[...Array(31)].map((_, i) => <option key={i+1} value={i+1}>{i+1}</option>)}
+                    {[...Array(daysInMonth)].map((_, i) => <option key={i+1} value={i+1}>{i+1}</option>)}
                   </select>
                   
                   <select 

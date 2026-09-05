@@ -9,6 +9,8 @@ const ApiResponse = require('../utils/apiResponse');
 const { parsePagination, buildPaginationMeta } = require('../utils/pagination');
 const { PUBLIC_STATUSES, MODERATION_STATUS } = require('../utils/constants');
 const logger = require('../utils/logger');
+const { wordFrequency } = require('../utils/textProcessing');
+const feedCache = require('../services/feedCacheService');
 
 /**
  * POST /api/v1/posts
@@ -94,6 +96,7 @@ async function createPost(req, res, next) {
       moderationReason: moderationResult.reason,
       sentiment: sentimentResult?.label || null,
       sentimentScore: sentimentResult?.score || null,
+      wordFrequencies: wordFrequency(content),
     });
 
     // Step 5: Create moderation log
@@ -109,7 +112,8 @@ async function createPost(req, res, next) {
       source: 'ai_auto',
     });
 
-    // Step 6: Notify user
+    // Step 6: Notify user and invalidate feed cache
+    feedCache.invalidateGlobal();
     await notificationService.notifyModeration(authorId, post._id, moderationResult.status);
 
     const populatedPost = await Post.findById(post._id)
@@ -197,6 +201,7 @@ async function deletePost(req, res, next) {
       Interaction.deleteMany({ post: post._id }),
     ]);
 
+    feedCache.invalidateGlobal();
     logger.info('Post deleted:', { postId: post._id, deletedBy: req.user._id });
 
     return ApiResponse.success(res, null, 'Post deleted');

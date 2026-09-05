@@ -135,15 +135,15 @@ export default function ProfilePage() {
           
           <div className="profile-stats">
             <div className="stat-item">
-              <span className="stat-value">{profile.isPrivateAndNotFollowing ? '-' : posts.length}</span>
+              <span className="stat-value">{profile.postsCount ?? posts.length}</span>
               <span className="stat-label">Posts</span>
             </div>
             <div className="stat-item" onClick={profile.isPrivateAndNotFollowing ? null : handleOpenFollowers} style={{ cursor: profile.isPrivateAndNotFollowing ? 'default' : 'pointer' }}>
-              <span className="stat-value">{profile.isPrivateAndNotFollowing ? '-' : profile.followersCount || 0}</span>
+              <span className="stat-value">{profile.followersCount || 0}</span>
               <span className="stat-label">Followers</span>
             </div>
             <div className="stat-item" onClick={profile.isPrivateAndNotFollowing ? null : handleOpenFollowing} style={{ cursor: profile.isPrivateAndNotFollowing ? 'default' : 'pointer' }}>
-              <span className="stat-value">{profile.isPrivateAndNotFollowing ? '-' : profile.followingCount || 0}</span>
+              <span className="stat-value">{profile.followingCount || 0}</span>
               <span className="stat-label">Following</span>
             </div>
           </div>

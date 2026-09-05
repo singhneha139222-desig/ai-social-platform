@@ -13,22 +13,10 @@ logger = logging.getLogger(__name__)
 sentiment_bp = Blueprint('sentiment', __name__)
 
 
+import time
+
 @sentiment_bp.route('/api/v1/sentiment', methods=['POST'])
 def analyze_sentiment():
-    """
-    Analyze text sentiment.
-
-    Request:
-        { "text": "example text" }
-
-    Response:
-        {
-            "label": "positive",
-            "score": 0.94,
-            "all_scores": { "positive": 0.94, "neutral": 0.04, "negative": 0.02 },
-            "model": "lxyuan/distilbert-base-multilingual-cased-sentiments-student"
-        }
-    """
     if not sentiment_analyzer.is_loaded:
         return jsonify({
             'error': 'Sentiment model not loaded',
@@ -50,7 +38,11 @@ def analyze_sentiment():
         }), 400
 
     try:
+        t0 = time.perf_counter()
         result = sentiment_analyzer.predict(text)
+        t1 = time.perf_counter()
+        inference_ms = (t1 - t0) * 1000
+        logger.info(f"[AIMetric] sentiment_inference_ms={inference_ms:.2f}")
         return jsonify(result), 200
     except Exception as e:
         logger.error(f"Sentiment prediction error: {e}")

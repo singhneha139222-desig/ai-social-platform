@@ -15,6 +15,11 @@ const postSchema = new mongoose.Schema(
       minlength: 1,
       maxlength: 2000,
     },
+    wordFrequencies: {
+      type: Map,
+      of: Number,
+      default: {},
+    },
     // --- Moderation fields ---
     toxicityScore: {
       type: Number,

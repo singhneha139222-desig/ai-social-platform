@@ -4,6 +4,7 @@ const Interaction = require('../models/Interaction');
 const notificationService = require('../services/notificationService');
 const ApiResponse = require('../utils/apiResponse');
 const { PUBLIC_STATUSES } = require('../utils/constants');
+const feedCache = require('../services/feedCacheService');
 
 /**
  * POST /api/v1/posts/:id/like
@@ -39,6 +40,7 @@ async function likePost(req, res, next) {
 
     // Notify post author
     await notificationService.notifyLike(userId, post.author, postId);
+    feedCache.invalidateUser(userId);
 
     return ApiResponse.success(res, { liked: true }, 'Post liked');
   } catch (error) {
@@ -65,6 +67,7 @@ async function unlikePost(req, res, next) {
     }
 
     await Post.findByIdAndUpdate(postId, { $inc: { likesCount: -1 } });
+    feedCache.invalidateUser(userId);
 
     return ApiResponse.success(res, { liked: false }, 'Post unliked');
   } catch (error) {
@@ -127,6 +130,8 @@ async function followUser(req, res, next) {
       ]);
 
       await notificationService.notifyFollow(userId, targetUserId);
+      feedCache.invalidateUser(userId);
+      feedCache.invalidateUser(targetUserId); // Their follower list changed
       return ApiResponse.success(res, { following: true, requested: false }, 'User followed');
     }
   } catch (error) {
@@ -159,6 +164,9 @@ async function unfollowUser(req, res, next) {
         User.findByIdAndUpdate(targetUserId, { $inc: { followersCount: -1 } }),
       ]);
     }
+
+    feedCache.invalidateUser(userId);
+    feedCache.invalidateUser(targetUserId);
 
     return ApiResponse.success(res, { following: false, requested: false }, 'User unfollowed');
   } catch (error) {

@@ -4,6 +4,7 @@ Loads models at startup and starts the Flask server.
 """
 import logging
 import sys
+from waitress import serve
 
 from app import create_app
 from app.config import PORT, DEBUG
@@ -34,8 +35,8 @@ def main():
     # Create and run the Flask app
     app = create_app()
 
-    logger.info(f"Starting AI service on port {PORT}")
-    app.run(host='0.0.0.0', port=PORT, debug=DEBUG)
+    logger.info(f"Starting AI service via Waitress on port {PORT} with 8 threads")
+    serve(app, host='0.0.0.0', port=PORT, threads=8)
 
 
 if __name__ == '__main__':

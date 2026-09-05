@@ -43,6 +43,7 @@ Limitations:
   - Training data bias from Wikipedia's specific content patterns
 """
 import logging
+import time
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
@@ -118,20 +119,28 @@ class ToxicityDetector:
                 'model': self.model_name
             }
 
+        t0 = time.perf_counter()
         # Tokenize
         inputs = self.tokenizer(
             text,
             return_tensors='pt',
             truncation=True,
-            max_length=512,
+            max_length=128, # Phase 12: Reduced from 512 for performance
             padding=True
         ).to(self.device)
+        t_token = time.perf_counter()
+        tokenization_ms = (t_token - t0) * 1000
 
         # Inference
         with torch.no_grad():
             outputs = self.model(**inputs)
+            t_infer = time.perf_counter()
+            model_inference_ms = (t_infer - t_token) * 1000
+            
             # Apply sigmoid for multi-label probabilities
             probabilities = torch.sigmoid(outputs.logits).squeeze().cpu().tolist()
+            t_post = time.perf_counter()
+            tensor_ms = (t_post - t_infer) * 1000
 
         # Handle single-dimension output
         if isinstance(probabilities, float):
@@ -150,6 +159,11 @@ class ToxicityDetector:
 
         # Apply moderation thresholds
         decision = self._get_decision(toxicity_score)
+        
+        t_final = time.perf_counter()
+        postprocess_ms = (t_final - t_post) * 1000
+        
+        logger.info(f"[AIMetric] tokenization_ms={tokenization_ms:.2f} model_inference_ms={model_inference_ms:.2f} tensor_ms={tensor_ms:.2f} postprocess_ms={postprocess_ms:.2f}")
 
         return {
             'toxicity_score': round(toxicity_score, 6),
