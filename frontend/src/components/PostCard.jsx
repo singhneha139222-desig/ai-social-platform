@@ -146,6 +146,16 @@ export default function PostCard({ post, onDelete, onLikeToggle }) {
 
       <div className="post-card__content">{post.content}</div>
 
+      {post.media && post.media.url && post.media.type !== 'none' && (
+        <div className="post-card__media" style={{ marginTop: '12px', borderRadius: '8px', overflow: 'hidden' }}>
+          {post.media.type === 'image' ? (
+            <img src={`${API_URL}/media/${post.media.url}`} alt="Post media" style={{ width: '100%', maxHeight: '400px', objectFit: 'contain', backgroundColor: '#f0f2f5' }} />
+          ) : (
+            <video src={`${API_URL}/media/${post.media.url}`} controls style={{ width: '100%', maxHeight: '400px', backgroundColor: '#000' }} />
+          )}
+        </div>
+      )}
+
       <div className="post-card__actions">
         <button className={`action-btn ${liked ? 'active' : ''}`} onClick={handleLike}>
           <Heart size={18} fill={liked ? 'currentColor' : 'none'} />

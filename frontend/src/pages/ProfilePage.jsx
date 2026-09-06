@@ -6,6 +6,7 @@ import { useToast } from '../context/ToastContext';
 import PostCard from '../components/PostCard';
 import { UserPlus, UserMinus, Clock } from 'lucide-react';
 import UserListModal from '../components/UserListModal';
+import BotDetectionPanel from '../components/BotDetectionPanel';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
 const BASE_URL = API_URL.replace('/api/v1', '');
@@ -162,6 +163,10 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
+
+      {currentUser?.role === 'admin' && profile._id && (
+        <BotDetectionPanel userId={profile._id} />
+      )}
 
       {profile.isPrivateAndNotFollowing ? (
         <div className="empty-state" style={{ padding: '3rem', borderTop: '1px solid var(--border-color)', marginTop: '2rem' }}>

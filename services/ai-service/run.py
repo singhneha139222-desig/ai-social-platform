@@ -25,6 +25,16 @@ def main():
         logger.info("Loading AI models... This may take a few minutes on first run.")
         toxicity_detector.load()
         sentiment_analyzer.load()
+        
+        from app.models.media_moderation import media_moderator
+        media_moderator.load()
+        
+        from app.models.language import language_moderator
+        language_moderator.load()
+        
+        from app.models.bot_model import bot_detector
+        bot_detector.load()
+        
         logger.info("All models loaded successfully!")
     except Exception as e:
         logger.error(f"FATAL: Failed to load models: {e}")

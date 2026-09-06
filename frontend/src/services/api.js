@@ -97,6 +97,19 @@ export const adminAPI = {
   getModerationDetail: (id, type = 'post') => api.get(`/admin/moderation/${id}?type=${type}`),
   approveContent: (id, data) => api.post(`/admin/moderation/${id}/approve`, data),
   rejectContent: (id, data) => api.post(`/admin/moderation/${id}/reject`, data),
+  triggerBotScan: (userId, force = false) => api.post(`/admin/bot-detection/${userId}/scan?force=${force}`),
+  getLatestBotScan: (userId) => api.get(`/admin/bot-detection/${userId}`),
+};
+
+// Message APIs
+export const messageAPI = {
+  getConversations: () => api.get('/messages/conversations'),
+  createConversation: (userId) => api.post('/messages/conversations', { userId }),
+  getMessages: (conversationId, page = 1) => api.get(`/messages/conversations/${conversationId}?page=${page}`),
+  sendMessage: (conversationId, text) => api.post(`/messages/conversations/${conversationId}/messages`, { text }),
+  markAsRead: (conversationId) => api.patch(`/messages/conversations/${conversationId}/read`),
+  acceptRequest: (conversationId) => api.patch(`/messages/conversations/${conversationId}/accept`),
+  deleteConversation: (conversationId) => api.delete(`/messages/conversations/${conversationId}`),
 };
 
 export default api;

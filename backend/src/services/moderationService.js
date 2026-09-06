@@ -94,23 +94,50 @@ function deriveOverallScore(categories) {
 function moderate(aiResult) {
   const toxicityScore = aiResult.toxicity_score;
   const categories = aiResult.categories || {};
+  const model = aiResult.model || null;
+  const inferenceTimeMs = aiResult.inferenceTimeMs || null;
   const { decision, status, reason } = getDecision(toxicityScore);
 
   logger.info('Moderation decision:', {
     toxicityScore: toxicityScore.toFixed(4),
     decision,
     status,
+    model,
+    inferenceTimeMs,
     topCategory: Object.entries(categories)
       .sort(([, a], [, b]) => b - a)[0]?.[0] || 'none',
   });
 
-  return { toxicityScore, categories, decision, status, reason };
+  return { toxicityScore, categories, decision, status, reason, model, inferenceTimeMs };
+}
+
+/**
+ * Full moderation pipeline for Media.
+ * Uses video aggregation fields if present.
+ */
+function moderateMedia(aiResult) {
+  const toxicityScore = aiResult.toxicity_score;
+  const categories = aiResult.categories || {};
+  const model = aiResult.model || null;
+  const inferenceTimeMs = aiResult.inferenceTimeMs || null;
+  const { decision, status, reason } = getDecision(toxicityScore);
+
+  logger.info('Media moderation decision:', {
+    toxicityScore: toxicityScore.toFixed(4),
+    decision,
+    status,
+    model,
+    inferenceTimeMs,
+  });
+
+  return { toxicityScore, categories, decision, status, reason, model, inferenceTimeMs };
 }
 
 module.exports = {
   getDecision,
   deriveOverallScore,
   moderate,
+  moderateMedia,
   // Expose thresholds for testing
   THRESHOLDS: { ...MODERATION },
 };

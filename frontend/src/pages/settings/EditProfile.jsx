@@ -19,7 +19,6 @@ export default function EditProfile() {
     bio: user?.bio || '',
     website: user?.website || '',
     gender: user?.gender || 'Prefer not to say',
-    showThreadsBadge: user?.preferences?.showThreadsBadge ?? true,
     isAICreator: user?.preferences?.isAICreator ?? false,
     showAccountSuggestions: user?.preferences?.showAccountSuggestions ?? true
   });
@@ -93,7 +92,6 @@ export default function EditProfile() {
         website: form.website,
         gender: form.gender,
         preferences: {
-          showThreadsBadge: form.showThreadsBadge,
           isAICreator: form.isAICreator,
           showAccountSuggestions: form.showAccountSuggestions
         }
@@ -254,17 +252,6 @@ export default function EditProfile() {
         <div className="settings-section">
           <h3 className="settings-section__title">Preferences</h3>
           
-          <div className="settings-toggle-row">
-            <div className="settings-toggle-info">
-              <h4>Show Threads badge</h4>
-              <p>Display a Threads badge on your profile</p>
-            </div>
-            <label className="toggle-switch">
-              <input type="checkbox" name="showThreadsBadge" checked={form.showThreadsBadge} onChange={handleChange} />
-              <span className="toggle-slider"></span>
-            </label>
-          </div>
-
           <div className="settings-toggle-row">
             <div className="settings-toggle-info">
               <h4>AI creator</h4>

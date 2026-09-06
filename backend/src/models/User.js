@@ -83,11 +83,15 @@ const userSchema = new mongoose.Schema(
         enum: ['positive', 'neutral', 'negative', 'all'],
         default: 'all',
       },
-      showThreadsBadge: { type: Boolean, default: true },
       isAICreator: { type: Boolean, default: false },
       showAccountSuggestions: { type: Boolean, default: true },
       isPrivate: { type: Boolean, default: false },
-      showActivityStatus: { type: Boolean, default: true }
+      showActivityStatus: { type: Boolean, default: true },
+      messageRequestPolicy: {
+        type: String,
+        enum: ['everyone', 'followers', 'none'],
+        default: 'everyone'
+      }
     },
     resetPasswordToken: String,
     resetPasswordExpire: Date,

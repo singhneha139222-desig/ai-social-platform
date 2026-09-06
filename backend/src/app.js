@@ -14,6 +14,9 @@ const commentRoutes = require('./routes/comments');
 const feedRoutes = require('./routes/feed');
 const notificationRoutes = require('./routes/notifications');
 const adminRoutes = require('./routes/admin');
+const messageRoutes = require('./routes/messages');
+const mediaRoutes = require('./routes/media');
+const botRoutes = require('./routes/bot');
 
 const app = express();
 
@@ -24,9 +27,12 @@ app.use(cors({
   credentials: true,
 }));
 
-// Serve static uploads
+// Serve static uploads (but exclude media which is served via the media route)
 const path = require('path');
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// We don't expose the entire uploads folder anymore.
+// If avatars or other public assets are in uploads/public, they can be served.
+// For now, no static serving to prevent direct access to /uploads/media
+
 
 // Body parsing with size limits
 app.use(express.json({ limit: '10mb' }));
@@ -82,6 +88,9 @@ app.use('/api/v1/comments', commentRoutes);
 app.use('/api/v1', feedRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/messages', messageRoutes);
+app.use('/api/v1/media', mediaRoutes);
+app.use('/api/v1/admin/bot-detection', botRoutes);
 
 // 404 handler
 app.use((req, res) => {
