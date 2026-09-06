@@ -4,6 +4,7 @@ import { getCroppedImg } from '../../utils/cropImage';
 import { userAPI } from '../../services/api';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
 const BASE_URL = API_URL.replace('/api/v1', '');
+import { getMediaUrl } from '../../utils/mediaUtils';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import useUsernameAvailability from '../../hooks/useUsernameAvailability';
@@ -18,9 +19,7 @@ export default function EditProfile() {
     displayName: user?.displayName || '',
     bio: user?.bio || '',
     website: user?.website || '',
-    gender: user?.gender || 'Prefer not to say',
-    isAICreator: user?.preferences?.isAICreator ?? false,
-    showAccountSuggestions: user?.preferences?.showAccountSuggestions ?? true
+    gender: user?.gender || 'Prefer not to say'
   });
   const [loading, setLoading] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -90,11 +89,7 @@ export default function EditProfile() {
         displayName: form.displayName,
         bio: form.bio,
         website: form.website,
-        gender: form.gender,
-        preferences: {
-          isAICreator: form.isAICreator,
-          showAccountSuggestions: form.showAccountSuggestions
-        }
+        gender: form.gender
       });
       updateUser(res.data.data.user);
       toast.success('Profile updated!');
@@ -121,7 +116,7 @@ export default function EditProfile() {
       <div className="settings-section" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'var(--bg-secondary)', padding: '1rem', borderRadius: 'var(--radius-md)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           {user?.avatar ? (
-            <img src={`${BASE_URL}${user.avatar}`} alt="Avatar" className="avatar-img avatar--lg" />
+            <img src={getMediaUrl(user.avatar, BASE_URL)} alt="Avatar" className="avatar-img avatar--lg" />
           ) : (
             <div className="avatar avatar--lg">{user?.displayName?.[0] || user?.username?.[0] || '?'}</div>
           )}
@@ -246,32 +241,6 @@ export default function EditProfile() {
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
               This won't be part of your public profile.
             </div>
-          </div>
-        </div>
-
-        <div className="settings-section">
-          <h3 className="settings-section__title">Preferences</h3>
-          
-          <div className="settings-toggle-row">
-            <div className="settings-toggle-info">
-              <h4>AI creator</h4>
-              <p>Label your account as an AI content creator</p>
-            </div>
-            <label className="toggle-switch">
-              <input type="checkbox" name="isAICreator" checked={form.isAICreator} onChange={handleChange} />
-              <span className="toggle-slider"></span>
-            </label>
-          </div>
-
-          <div className="settings-toggle-row">
-            <div className="settings-toggle-info">
-              <h4>Show account suggestions on profiles</h4>
-              <p>Choose whether people can see similar account suggestions on your profile</p>
-            </div>
-            <label className="toggle-switch">
-              <input type="checkbox" name="showAccountSuggestions" checked={form.showAccountSuggestions} onChange={handleChange} />
-              <span className="toggle-slider"></span>
-            </label>
           </div>
         </div>
 

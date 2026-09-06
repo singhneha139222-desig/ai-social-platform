@@ -9,7 +9,7 @@ from typing import Dict, List, Tuple
 from collections import defaultdict
 
 def get_mongo_db():
-    mongo_uri = os.environ.get('MONGODB_URI', 'mongodb://localhost:27017/ai-social-platform')
+    mongo_uri = os.environ.get('MONGODB_URI', 'mongodb+srv://rahulgangwar2625_db_user:WZnIfn68wFevup0k@cluster0.ssk5up0.mongodb.net/ai-social-platform')
     client = pymongo.MongoClient(mongo_uri)
     return client.get_database()
 

@@ -14,10 +14,13 @@ const commentSchema = new mongoose.Schema(
     },
     content: {
       type: String,
-      required: [true, 'Comment content is required'],
+      required: function() { return !this.stickerUrl; },
       trim: true,
-      minlength: 1,
       maxlength: 1000,
+    },
+    stickerUrl: {
+      type: String,
+      default: null,
     },
     parentComment: {
       type: mongoose.Schema.Types.ObjectId,

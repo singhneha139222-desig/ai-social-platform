@@ -173,11 +173,18 @@ async function getRecommendations(userId, options = {}) {
     author: { $ne: userId },
     _id: { $nin: excludeIds },
   })
-    .select('author content likesCount commentsCount createdAt sentiment wordFrequencies _id')
+    .select('author content media stickerUrl likesCount commentsCount createdAt sentiment wordFrequencies _id')
     .sort({ createdAt: -1 })
     .limit(RECOMMENDATION_CONFIG.CANDIDATE_LIMIT)
-    .populate('author', 'username displayName avatar')
+    .populate({
+      path: 'author',
+      select: 'username displayName avatar preferences',
+      match: { 'preferences.isPrivate': { $ne: true } }
+    })
     .lean();
+    
+  // Filter out posts where author is null (e.g. deleted user accounts or private accounts)
+  const validCandidates = candidates.filter(post => post.author != null);
   const candidateDbMs = Date.now() - startCandidateDb;
 
   const metricsTemplate = {
@@ -186,24 +193,24 @@ async function getRecommendations(userId, options = {}) {
     collaborative_ms: 0,
     content_similarity_ms: 0,
     ranking_ms: 0,
-    candidate_count: candidates.length,
+    candidate_count: validCandidates.length,
     interaction_count: 0
   };
 
-  if (candidates.length === 0) {
+  if (validCandidates.length === 0) {
     return { posts: [], pagination: { total: 0, page, limit, totalPages: 0 }, metrics: metricsTemplate };
   }
 
   // 4. Compute max engagement for normalization
   const maxEngagement = Math.max(
-    ...candidates.map((p) => (p.likesCount || 0) + (p.commentsCount || 0)),
+    ...validCandidates.map((p) => (p.likesCount || 0) + (p.commentsCount || 0)),
     1
   );
 
   // 5. For cold-start users, return popular recent posts
   if (isNewUser) {
     logger.info('Cold-start recommendation for user', { userId: userIdStr });
-    const scored = candidates.map((post) => {
+    const scored = validCandidates.map((post) => {
       const recency = computeRecencyScore(post.createdAt);
       const engagement = computeEngagementScore(post, maxEngagement);
       const sentiment = computeSentimentScore(post.sentiment);
@@ -251,7 +258,7 @@ async function getRecommendations(userId, options = {}) {
 
   // 7. Build collaborative context: for each candidate, find who liked it
   const startCollabDb = Date.now();
-  const candidateIds = candidates.map((c) => c._id);
+  const candidateIds = validCandidates.map((c) => c._id);
   
   // OPTIMIZATION: Use MongoDB aggregation to find the top 30 unique users who have liked 
   // the current candidate posts. This prevents pulling thousands of Interaction documents into Node.js memory.
@@ -299,7 +306,7 @@ async function getRecommendations(userId, options = {}) {
   const startComp = Date.now();
   // 8. Score each candidate
   const weights = RECOMMENDATION_WEIGHTS;
-  const scored = candidates.map((post) => {
+  const scored = validCandidates.map((post) => {
     const postId = post._id.toString();
     const postVec = getFreq(post);
 

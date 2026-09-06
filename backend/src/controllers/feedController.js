@@ -105,16 +105,19 @@ async function getFeed(req, res, next) {
     // Check which posts the user has liked
     const start_serialization = Date.now();
     const postIds = allPosts.map((p) => p._id);
-    const userLikes = await Interaction.find({
+    const userInteractions = await Interaction.find({
       user: userId,
       post: { $in: postIds },
-      type: 'like',
+      type: { $in: ['like', 'save'] },
     }).lean();
-    const likedPostIds = new Set(userLikes.map((l) => l.post.toString()));
+    
+    const likedPostIds = new Set(userInteractions.filter(i => i.type === 'like').map((l) => l.post.toString()));
+    const savedPostIds = new Set(userInteractions.filter(i => i.type === 'save').map((s) => s.post.toString()));
 
     const postsWithLikeStatus = allPosts.map((p) => ({
       ...p,
       isLiked: likedPostIds.has(p._id.toString()),
+      isSaved: savedPostIds.has(p._id.toString()),
     }));
 
     // Paginate
@@ -171,22 +174,30 @@ async function getExplore(req, res, next) {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .populate('author', 'username displayName avatar'),
+        .populate({
+          path: 'author',
+          select: 'username displayName avatar preferences',
+          match: { 'preferences.isPrivate': { $ne: true } }
+        }),
       Post.countDocuments(filter),
     ]);
 
+    const publicPosts = posts.filter(p => p.author != null);
+
     // Check likes
-    const postIds = posts.map((p) => p._id);
-    const userLikes = await Interaction.find({
+    const postIds = publicPosts.map((p) => p._id);
+    const userInteractions = await Interaction.find({
       user: userId,
       post: { $in: postIds },
-      type: 'like',
+      type: { $in: ['like', 'save'] },
     }).lean();
-    const likedPostIds = new Set(userLikes.map((l) => l.post.toString()));
+    const likedPostIds = new Set(userInteractions.filter(i => i.type === 'like').map((l) => l.post.toString()));
+    const savedPostIds = new Set(userInteractions.filter(i => i.type === 'save').map((s) => s.post.toString()));
 
-    const postsWithLikeStatus = posts.map((p) => ({
+    const postsWithLikeStatus = publicPosts.map((p) => ({
       ...p.toJSON(),
       isLiked: likedPostIds.has(p._id.toString()),
+      isSaved: savedPostIds.has(p._id.toString()),
     }));
 
     return ApiResponse.success(res, {
@@ -208,8 +219,23 @@ async function getRecommendations(req, res, next) {
 
     const result = await recommendationService.getRecommendations(userId, { page, limit });
 
+    const postIds = result.posts.map((p) => p._id);
+    const userInteractions = await Interaction.find({
+      user: userId,
+      post: { $in: postIds },
+      type: { $in: ['like', 'save'] },
+    }).lean();
+    const likedPostIds = new Set(userInteractions.filter(i => i.type === 'like').map((l) => l.post.toString()));
+    const savedPostIds = new Set(userInteractions.filter(i => i.type === 'save').map((s) => s.post.toString()));
+
+    const postsWithLikeStatus = result.posts.map((p) => ({
+      ...p,
+      isLiked: likedPostIds.has(p._id.toString()),
+      isSaved: savedPostIds.has(p._id.toString()),
+    }));
+
     return ApiResponse.success(res, {
-      posts: result.posts,
+      posts: postsWithLikeStatus,
       pagination: result.pagination,
     });
   } catch (error) {

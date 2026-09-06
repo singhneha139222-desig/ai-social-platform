@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { getMediaUrl } from '../utils/mediaUtils';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
 const BASE_URL = API_URL.replace('/api/v1', '');
@@ -47,7 +48,7 @@ export default function UserListModal({ isOpen, onClose, title, fetchUsers }) {
                 return (
                   <Link to={`/profile/${user.username}`} key={user._id} className="user-list-item" onClick={onClose}>
                     {user.avatar ? (
-                      <img src={`${BASE_URL}${user.avatar}`} alt="Avatar" className="avatar-img avatar--sm" />
+                      <img src={getMediaUrl(user.avatar, BASE_URL)} alt="Avatar" className="avatar-img avatar--sm" />
                     ) : (
                       <div className="avatar avatar--sm">{initial.toUpperCase()}</div>
                     )}

@@ -4,7 +4,8 @@ import { notificationAPI, userAPI } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import { useSocket } from '../context/SocketContext';
 import { formatDistanceToNow } from 'date-fns';
-import { Bell, Heart, MessageCircle, UserPlus, Shield, CheckCheck } from 'lucide-react';
+import { Bell, Heart, MessageSquare, UserPlus, Check, X, Shield, MessageCircle, CheckCheck } from 'lucide-react';
+import { getMediaUrl } from '../utils/mediaUtils';
 
 const ICONS = { follow: UserPlus, like: Heart, comment: MessageCircle, moderation: Shield };
 const COLORS = { follow: 'var(--accent-primary)', like: '#ed4956', comment: 'var(--text-secondary)', moderation: 'var(--warning)' };
@@ -17,7 +18,6 @@ export default function NotificationsPage() {
   const toast = useToast();
   const navigate = useNavigate();
   const { socket } = useSocket();
-
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
   const BASE_URL = API_URL.replace('/api/v1', '');
 
@@ -145,7 +145,7 @@ export default function NotificationsPage() {
               <div key={req._id} style={{ display: 'flex', alignItems: 'center', padding: '1rem 1.5rem', gap: '1rem' }}>
                   {req.user?.avatar ? (
                     <img 
-                      src={`${BASE_URL}${req.user.avatar}`} 
+                      src={getMediaUrl(req.user.avatar, BASE_URL)} 
                       alt="Avatar" 
                       className="avatar-img avatar--md" 
                       onClick={(e) => handleAvatarClick(e, req.user?.username)}
@@ -209,7 +209,7 @@ export default function NotificationsPage() {
                   )}
                   {n.sender?.avatar ? (
                     <img 
-                      src={`${BASE_URL}${n.sender.avatar}`} 
+                      src={getMediaUrl(n.sender.avatar, BASE_URL)} 
                       alt="Avatar" 
                       className="avatar-img avatar--md" 
                       onClick={(e) => handleAvatarClick(e, n.sender?.username)}

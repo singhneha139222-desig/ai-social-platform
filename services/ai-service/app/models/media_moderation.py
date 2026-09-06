@@ -91,11 +91,18 @@ class MediaModerator:
         if not self._loaded:
             raise RuntimeError("Media model not loaded")
         
-        if not os.path.exists(image_path):
-            raise FileNotFoundError(f"Image not found: {image_path}")
-            
         try:
-            image = Image.open(image_path)
+            if image_path.startswith('http://') or image_path.startswith('https://'):
+                import requests
+                from io import BytesIO
+                response = requests.get(image_path, timeout=10)
+                response.raise_for_status()
+                image = Image.open(BytesIO(response.content))
+            else:
+                if not os.path.exists(image_path):
+                    raise FileNotFoundError(f"Image not found: {image_path}")
+                image = Image.open(image_path)
+                
             if image.mode != 'RGB':
                 image = image.convert('RGB')
             return self._predict_image_pil(image)
@@ -107,7 +114,8 @@ class MediaModerator:
         if not self._loaded:
             raise RuntimeError("Media model not loaded")
             
-        if not os.path.exists(video_path):
+        is_url = video_path.startswith('http://') or video_path.startswith('https://')
+        if not is_url and not os.path.exists(video_path):
             raise FileNotFoundError(f"Video not found: {video_path}")
             
         t0 = time.perf_counter()

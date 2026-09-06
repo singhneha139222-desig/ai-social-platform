@@ -102,7 +102,7 @@ async function uploadAvatar(req, res, next) {
       return ApiResponse.badRequest(res, 'No image file provided');
     }
 
-    const avatarUrl = `/uploads/profiles/${req.file.filename}`;
+    const avatarUrl = req.file.path;
 
     const user = await User.findByIdAndUpdate(
       req.user._id,
@@ -307,4 +307,36 @@ async function checkUsernameAvailability(req, res, next) {
   }
 }
 
-module.exports = { getProfile, updateProfile, getFollowers, getFollowing, searchUsers, uploadAvatar, checkUsernameAvailability };
+/**
+ * GET /api/v1/users/suggested
+ * Suggest users to follow
+ */
+async function getSuggestedUsers(req, res, next) {
+  try {
+    const userId = req.user._id;
+
+    // Find users the current user is already following
+    const following = await Interaction.find({ user: userId, type: 'follow' }).select('targetUser').lean();
+    const followingIds = following.map((f) => f.targetUser);
+    
+    // Add current user to exclude list
+    followingIds.push(userId);
+
+    // Find 5 users with most followers, excluding admins and already followed users
+    const suggestions = await User.find({
+      _id: { $nin: followingIds },
+      role: 'user'
+    })
+      .sort({ followersCount: -1, createdAt: -1 })
+      .limit(5)
+      .select('username displayName avatar');
+
+    return ApiResponse.success(res, {
+      users: suggestions
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+module.exports = { getProfile, updateProfile, getFollowers, getFollowing, searchUsers, uploadAvatar, checkUsernameAvailability, getSuggestedUsers };

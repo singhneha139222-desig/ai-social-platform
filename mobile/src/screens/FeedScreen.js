@@ -100,6 +100,14 @@ export default function FeedScreen() {
           />
         )}
         
+        {item.stickerUrl && (
+          <Image 
+            source={{ uri: item.stickerUrl }} 
+            style={styles.stickerImage} 
+            resizeMode="contain"
+          />
+        )}
+        
         <View style={styles.footer}>
           <Text 
             style={[styles.likes, item.isLikedByMe && styles.likedActive]} 
@@ -152,6 +160,7 @@ const styles = StyleSheet.create({
   author: { fontWeight: 'bold', fontSize: 16 },
   content: { fontSize: 14, color: '#333', marginBottom: 12 },
   mediaImage: { width: '100%', height: 200, borderRadius: 8, marginBottom: 12 },
+  stickerImage: { width: 150, height: 150, marginBottom: 12, alignSelf: 'center' },
   footer: { flexDirection: 'row', gap: 16 },
   likes: { color: '#666' },
   comments: { color: '#666' },

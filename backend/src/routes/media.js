@@ -3,36 +3,28 @@ const router = express.Router();
 const mediaController = require('../controllers/mediaController');
 const auth = require('../middleware/auth');
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const cloudinary = require('../utils/cloudinary');
 
-// Ensure upload directory exists
-const uploadDir = path.join(__dirname, '../../uploads/media');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// Set up Multer for local storage
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir);
+// Set up Multer for Cloudinary storage
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'ai_social/posts',
+    resource_type: 'auto', // Allows both image and video
   },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname);
-    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
-  }
 });
 
 // Validation filter
 const fileFilter = (req, file, cb) => {
   const allowedImageMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
   const allowedVideoMimeTypes = ['video/mp4', 'video/quicktime', 'video/webm'];
+  const allowedAudioMimeTypes = ['audio/mp4', 'audio/webm', 'audio/ogg', 'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-m4a'];
   
-  if (allowedImageMimeTypes.includes(file.mimetype) || allowedVideoMimeTypes.includes(file.mimetype)) {
+  if (allowedImageMimeTypes.includes(file.mimetype) || allowedVideoMimeTypes.includes(file.mimetype) || allowedAudioMimeTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file type. Only standard images and videos are allowed.'), false);
+    cb(new Error('Invalid file type. Only standard images, videos, and audio are allowed.'), false);
   }
 };
 

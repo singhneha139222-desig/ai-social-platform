@@ -1,6 +1,19 @@
 const { body } = require('express-validator');
 const { CONTENT_LIMITS } = require('../utils/constants');
 
+const requestRegistrationOtpValidation = [
+  body('username')
+    .trim()
+    .isLength({ min: CONTENT_LIMITS.USERNAME_MIN_LENGTH, max: CONTENT_LIMITS.USERNAME_MAX_LENGTH })
+    .withMessage(`Username must be ${CONTENT_LIMITS.USERNAME_MIN_LENGTH}-${CONTENT_LIMITS.USERNAME_MAX_LENGTH} characters`)
+    .matches(/^[a-zA-Z0-9_]+$/)
+    .withMessage('Username can only contain letters, numbers, and underscores'),
+  body('contact')
+    .trim()
+    .notEmpty()
+    .withMessage('Please provide a mobile number or email address'),
+];
+
 const registerValidation = [
   body('username')
     .trim()
@@ -111,6 +124,7 @@ const resetPasswordValidation = [
 ];
 
 module.exports = {
+  requestRegistrationOtpValidation,
   registerValidation,
   loginValidation,
   postValidation,

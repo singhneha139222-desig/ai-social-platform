@@ -10,10 +10,15 @@ const postSchema = new mongoose.Schema(
     },
     content: {
       type: String,
-      required: [true, 'Post content is required'],
+      required: function() {
+        return !this.stickerUrl && (!this.media || this.media.type === 'none');
+      },
       trim: true,
-      minlength: 1,
       maxlength: 2000,
+    },
+    stickerUrl: {
+      type: String,
+      default: null,
     },
     wordFrequencies: {
       type: Map,
@@ -94,6 +99,14 @@ const postSchema = new mongoose.Schema(
       default: 0,
     },
     commentsCount: {
+      type: Number,
+      default: 0,
+    },
+    sharesCount: {
+      type: Number,
+      default: 0,
+    },
+    savesCount: {
       type: Number,
       default: 0,
     },
