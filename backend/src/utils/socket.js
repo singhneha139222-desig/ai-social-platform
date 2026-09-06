@@ -46,16 +46,61 @@ function initSocket(httpServer) {
     }
   });
 
+  // In-memory registry for user presence (userId -> Set of socketIds)
+  const userSockets = new Map();
+
   io.on('connection', (socket) => {
     const userId = socket.userId;
     logger.info(`Socket connected for user: ${userId} (socket.id: ${socket.id})`);
+
+    // Track presence
+    if (!userSockets.has(userId)) {
+      userSockets.set(userId, new Set());
+      // Broadcast online status to others
+      socket.broadcast.emit('presence:update', { userId, status: 'online' });
+    }
+    userSockets.get(userId).add(socket.id);
+
+    // Send the current list of online users to the newly connected socket
+    const onlineUserIds = Array.from(userSockets.keys());
+    socket.emit('presence:initial_state', onlineUserIds);
 
     // Join private room derived by server
     const userRoom = `user:${userId}`;
     socket.join(userRoom);
 
+    // Messaging Events
+    socket.on('typing:start', ({ receiverId, conversationId }) => {
+      socket.to(`user:${receiverId}`).emit('typing:start', { senderId: userId, conversationId });
+    });
+
+    socket.on('typing:stop', ({ receiverId, conversationId }) => {
+      socket.to(`user:${receiverId}`).emit('typing:stop', { senderId: userId, conversationId });
+    });
+
+    socket.on('message:delivered', async ({ messageId, senderId, conversationId }) => {
+      try {
+        const Message = require('../models/Message');
+        await Message.findByIdAndUpdate(messageId, { status: 'delivered' });
+        // Notify the sender that message was delivered
+        socket.to(`user:${senderId}`).emit('message:delivered', { messageId, conversationId, deliveredAt: new Date() });
+      } catch (err) {
+        logger.error('Error handling message:delivered:', err);
+      }
+    });
+
     socket.on('disconnect', () => {
       logger.info(`Socket disconnected for user: ${userId} (socket.id: ${socket.id})`);
+      
+      const sockets = userSockets.get(userId);
+      if (sockets) {
+        sockets.delete(socket.id);
+        if (sockets.size === 0) {
+          userSockets.delete(userId);
+          // Broadcast offline status
+          io.emit('presence:update', { userId, status: 'offline', lastSeen: new Date() });
+        }
+      }
     });
   });
 

@@ -64,14 +64,16 @@ async function register(req, res, next) {
       return ApiResponse.conflict(res, 'An account with this email, mobile number, or username already exists.', 'DUPLICATE_USER');
     }
 
-    const user = await User.create({
+    const userData = {
       username,
-      email,
-      phone,
       passwordHash: password, // hashed by pre-save hook
       displayName: displayName || username,
       dateOfBirth,
-    });
+    };
+    if (email) userData.email = email;
+    if (phone) userData.phone = phone;
+
+    const user = await User.create(userData);
 
     const token = generateToken(user._id);
 
@@ -79,15 +81,7 @@ async function register(req, res, next) {
 
     return ApiResponse.created(res, {
       token,
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        phone: user.phone,
-        displayName: user.displayName,
-        role: user.role,
-        avatar: user.avatar,
-      },
+      user
     }, 'Registration successful');
   } catch (error) {
     next(error);
@@ -134,16 +128,7 @@ async function login(req, res, next) {
 
     return ApiResponse.success(res, {
       token,
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        phone: user.phone,
-        displayName: user.displayName,
-        role: user.role,
-        avatar: user.avatar,
-        bio: user.bio,
-      },
+      user
     }, 'Login successful');
   } catch (error) {
     next(error);

@@ -11,6 +11,7 @@ const { PUBLIC_STATUSES, MODERATION_STATUS } = require('../utils/constants');
 const logger = require('../utils/logger');
 const { wordFrequency } = require('../utils/textProcessing');
 const feedCache = require('../services/feedCacheService');
+const { getIo } = require('../utils/socket');
 
 /**
  * POST /api/v1/posts
@@ -28,112 +29,171 @@ const feedCache = require('../services/feedCacheService');
  */
 async function createPost(req, res, next) {
   try {
-    const { content } = req.body;
+    const { content, mediaUrl, mediaType, mimeType, mediaSize } = req.body;
     const authorId = req.user._id;
 
-    let toxicityResult = null;
-    let moderationResult = null;
-    let sentimentResult = null;
-    let aiAvailable = true;
-
-    // Step 1: Toxicity analysis
-    try {
-      toxicityResult = await aiService.analyzeToxicity(content);
-      moderationResult = moderationService.moderate(toxicityResult);
-    } catch (error) {
-      logger.error('AI moderation unavailable during post creation:', error.message);
-      aiAvailable = false;
+    const mediaObj = { type: 'none' };
+    if (mediaUrl) {
+      mediaObj.url = mediaUrl;
+      mediaObj.type = mediaType || 'image';
+      mediaObj.mimeType = mimeType || null;
+      mediaObj.sizeBytes = mediaSize || 0;
     }
 
-    // Step 2: If AI unavailable, save as pending (fail-safe)
-    if (!aiAvailable) {
-      const post = await Post.create({
-        author: authorId,
-        content,
-        moderationStatus: MODERATION_STATUS.PENDING,
-        moderationReason: 'AI moderation service unavailable — pending manual review',
-      });
-
-      await ModerationLog.create({
-        post: post._id,
-        contentType: 'post',
-        model: 'unavailable',
-        toxicityScore: null,
-        decision: 'flag',
-        moderationStatus: MODERATION_STATUS.PENDING,
-        reason: 'AI moderation service unavailable',
-        source: 'ai_auto',
-      });
-
-      await notificationService.notifyModeration(authorId, post._id, 'flagged');
-
-      return ApiResponse.created(res, {
-        post: await Post.findById(post._id).populate('author', 'username displayName avatar'),
-        moderation: {
-          status: 'pending',
-          message: 'Your post is being reviewed. The moderation service is temporarily unavailable.',
-        },
-      }, 'Post submitted for review');
-    }
-
-    // Step 3: If published, run sentiment analysis
-    if (moderationResult.decision === 'publish') {
-      try {
-        sentimentResult = await aiService.analyzeSentiment(content);
-      } catch (error) {
-        logger.warn('Sentiment analysis unavailable, proceeding without sentiment:', error.message);
-        // Sentiment is non-blocking — post can still be published without it
-      }
-    }
-
-    // Step 4: Create the post
+    // Step 1: Create post in PENDING state immediately
     const post = await Post.create({
       author: authorId,
-      content,
-      toxicityScore: moderationResult.toxicityScore,
-      toxicityCategories: toxicityResult.categories || {},
-      moderationStatus: moderationResult.status,
-      moderationReason: moderationResult.reason,
-      sentiment: sentimentResult?.label || null,
-      sentimentScore: sentimentResult?.score || null,
-      wordFrequencies: wordFrequency(content),
+      content: content || '',
+      media: mediaObj,
+      moderationStatus: MODERATION_STATUS.PENDING,
+      moderationReason: 'Pending AI review',
+      wordFrequencies: content ? wordFrequency(content) : {},
     });
 
-    // Step 5: Create moderation log
-    await ModerationLog.create({
-      post: post._id,
-      contentType: 'post',
-      model: toxicityResult.model || 'unitary/toxic-bert',
-      toxicityScore: moderationResult.toxicityScore,
-      toxicityCategories: toxicityResult.categories || {},
-      decision: moderationResult.decision,
-      moderationStatus: moderationResult.status,
-      reason: moderationResult.reason,
-      source: 'ai_auto',
-    });
+    // Populate for immediate response
+    const populatedPost = await Post.findById(post._id).populate('author', 'username displayName avatar');
 
-    // Step 6: Notify user and invalidate feed cache
-    feedCache.invalidateGlobal();
-    await notificationService.notifyModeration(authorId, post._id, moderationResult.status);
-
-    const populatedPost = await Post.findById(post._id)
-      .populate('author', 'username displayName avatar');
-
-    // User-friendly moderation messages
-    const moderationMessages = {
-      publish: 'Your post has been published.',
-      flag: 'Your post is pending review.',
-      reject: 'Your post could not be published because it did not meet our content guidelines.',
-    };
-
-    return ApiResponse.created(res, {
+    // Return 201 Created immediately with pending status
+    ApiResponse.created(res, {
       post: populatedPost,
       moderation: {
-        status: moderationResult.status,
-        decision: moderationResult.decision,
-        message: moderationMessages[moderationResult.decision],
+        status: 'pending',
+        decision: 'pending',
+        message: 'Your post is being reviewed by AI.',
       },
-    }, moderationMessages[moderationResult.decision]);
+    }, 'Post submitted for review');
+
+    // Step 2: Asynchronously process moderation
+    (async () => {
+      try {
+        let toxicityResult = null;
+        let moderationResult = null;
+        let sentimentResult = null;
+
+        // Moderate Media if present
+        if (post.media && post.media.url) {
+          const path = require('path');
+          const mediaAbsolutePath = path.join(__dirname, '../../uploads/media', post.media.url);
+          
+          if (post.media.type === 'image') {
+            toxicityResult = await aiService.analyzeImage(mediaAbsolutePath);
+          } else if (post.media.type === 'video') {
+            toxicityResult = await aiService.analyzeVideo(mediaAbsolutePath);
+          }
+          moderationResult = moderationService.moderateMedia(toxicityResult);
+        } else {
+          // Moderate Text
+          toxicityResult = await aiService.analyzeToxicity(content);
+          moderationResult = moderationService.moderate(toxicityResult);
+        }
+        // If published, run sentiment analysis
+        if (moderationResult.decision === 'publish') {
+          try {
+            sentimentResult = await aiService.analyzeSentiment(content);
+          } catch (error) {
+            logger.warn('Sentiment analysis unavailable:', error.message);
+          }
+        }
+
+        // Update post with moderation results
+        post.toxicityScore = moderationResult.toxicityScore;
+        post.toxicityCategories = toxicityResult.categories || {};
+        post.moderationStatus = moderationResult.status;
+        post.moderationReason = moderationResult.reason;
+        
+        // Save XAI Explanation if available
+        if (toxicityResult.explanation) {
+          post.explanation = toxicityResult.explanation;
+        }
+        
+        post.sentiment = sentimentResult?.label || null;
+        post.sentimentScore = sentimentResult?.score || null;
+        post.aiMetadata = {
+          model: moderationResult.model || toxicityResult.model || null,
+          inferenceTimeMs: moderationResult.inferenceTimeMs || null,
+        };
+        await post.save();
+
+        // Create moderation log
+        await ModerationLog.create({
+          post: post._id,
+          contentType: 'post',
+          model: toxicityResult.model || 'unitary/toxic-bert',
+          toxicityScore: moderationResult.toxicityScore,
+          toxicityCategories: toxicityResult.categories || {},
+          decision: moderationResult.decision,
+          moderationStatus: moderationResult.status,
+          reason: moderationResult.reason,
+          source: 'ai_auto',
+        });
+
+        // Notify user and invalidate feed cache
+        if (moderationResult.decision === 'publish') {
+          feedCache.invalidateGlobal();
+        }
+        await notificationService.notifyModeration(authorId, post._id, moderationResult.status);
+
+        // Emit real-time Socket.IO event to the post author
+        try {
+          const io = getIo();
+          
+          const socketPayload = {
+            postId: post._id.toString(),
+            status: moderationResult.status,
+            decision: moderationResult.decision,
+            toxicity: moderationResult.toxicityScore,
+            model: moderationResult.model || toxicityResult.model || null,
+            explanationAvailable: !!toxicityResult.explanation
+          };
+          
+          if (toxicityResult.explanation && toxicityResult.explanation.status === 'success') {
+            socketPayload.explanation = {
+              method: toxicityResult.explanation.method,
+              targetCategory: toxicityResult.explanation.targetCategory,
+              topTokens: toxicityResult.explanation.topTokens,
+              summary: toxicityResult.explanation.summary
+            };
+          }
+          
+          io.to(`user:${authorId}`).emit('moderation:update', socketPayload);
+        } catch (socketErr) {
+          logger.error('Failed to emit moderation:update via Socket.IO:', socketErr.message);
+        }
+
+      } catch (error) {
+        logger.error('AI moderation failed during background processing:', error.message);
+        
+        // Fail-safe: Update post to reflect failure, keep as pending/flagged
+        post.moderationReason = 'AI moderation service unavailable — pending manual review';
+        await post.save();
+
+        await ModerationLog.create({
+          post: post._id,
+          contentType: 'post',
+          model: 'unavailable',
+          toxicityScore: null,
+          decision: 'flag',
+          moderationStatus: MODERATION_STATUS.PENDING,
+          reason: 'AI moderation service unavailable',
+          source: 'ai_auto',
+        });
+
+        await notificationService.notifyModeration(authorId, post._id, 'flagged');
+
+        try {
+          const io = getIo();
+          io.to(`user:${authorId}`).emit('moderation:update', {
+            postId: post._id.toString(),
+            status: 'pending',
+            decision: 'failed',
+            message: 'Content moderation is temporarily unavailable. Your post is pending review.'
+          });
+        } catch (socketErr) {
+          logger.error('Failed to emit moderation:update fallback:', socketErr.message);
+        }
+      }
+    })(); // Execute background task
+
   } catch (error) {
     next(error);
   }

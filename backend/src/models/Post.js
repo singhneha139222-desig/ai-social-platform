@@ -20,6 +20,20 @@ const postSchema = new mongoose.Schema(
       of: Number,
       default: {},
     },
+    // --- Media fields ---
+    media: {
+      type: {
+        type: String,
+        enum: ['image', 'video', 'none'],
+        default: 'none'
+      },
+      url: { type: String, default: null },
+      mimeType: { type: String, default: null },
+      sizeBytes: { type: Number, default: 0 }
+    },
+    // --- Multilingual fields ---
+    language: { type: String, default: 'en' },
+    languageConfidence: { type: Number, default: 1.0 },
     // --- Moderation fields ---
     toxicityScore: {
       type: Number,
@@ -35,13 +49,32 @@ const postSchema = new mongoose.Schema(
     },
     moderationStatus: {
       type: String,
-      enum: ['pending', 'published', 'flagged', 'rejected', 'removed', 'approved_by_admin', 'rejected_by_admin'],
+      enum: ['pending', 'processing', 'published', 'flagged', 'rejected', 'removed', 'approved_by_admin', 'rejected_by_admin'],
       default: 'pending',
       index: true,
     },
     moderationReason: {
       type: String,
       default: '',
+    },
+    explanation: {
+      status: { type: String, enum: ['success', 'unavailable', null], default: null },
+      method: { type: String, default: null },
+      targetCategory: { type: String, default: null },
+      topTokens: [
+        {
+          token: { type: String },
+          importance: { type: Number }
+        }
+      ],
+      summary: { type: String, default: null }
+    },
+    aiMetadata: {
+      model: { type: String, default: null },
+      inferenceTimeMs: { type: Number, default: null },
+      // Support for video frame extraction aggregation data
+      framesSampled: { type: Number, default: 0 },
+      flaggedFrames: { type: Number, default: 0 },
     },
     // --- Sentiment fields ---
     sentiment: {

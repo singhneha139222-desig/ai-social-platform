@@ -155,6 +155,50 @@ export default function AdminModeration() {
                 ))}
               </div>
             )}
+            
+            {/* Explainable AI (XAI) Section */}
+            {selected.explanation && selected.explanation.status === 'success' && (
+              <div style={{ marginBottom: '1.5rem', padding: '1rem', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-default)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                  <AlertTriangle size={16} color="var(--accent-primary)" />
+                  <span style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>Why?</span>
+                </div>
+                
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1rem', fontStyle: 'italic' }}>
+                  {selected.explanation.summary}
+                </p>
+                
+                <div style={{ marginBottom: '1rem' }}>
+                  <div className="mod-card__meta" style={{ marginBottom: '0.5rem' }}>Important Text Spans</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    {selected.explanation.topTokens?.map((t, idx) => (
+                      <span key={idx} style={{ 
+                        background: t.importance > 0.7 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.1)', 
+                        color: 'var(--error)', 
+                        padding: '0.2rem 0.5rem', 
+                        borderRadius: '4px', 
+                        fontSize: '0.875rem', 
+                        fontWeight: 600,
+                        border: '1px solid rgba(239, 68, 68, 0.3)'
+                      }}>
+                        {t.token}
+                        <span style={{ marginLeft: '0.3rem', fontSize: '0.7rem', opacity: 0.7, fontWeight: 'normal' }}>
+                          {(t.importance * 100).toFixed(0)}%
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                
+                <div style={{ display: 'flex', gap: '1rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  <div><strong>Method:</strong> {selected.explanation.method}</div>
+                  <div><strong>Target:</strong> {selected.explanation.targetCategory}</div>
+                  {selected.aiMetadata?.model && (
+                    <div><strong>Model:</strong> {selected.aiMetadata.model.split('/').pop()}</div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {detail?.logs?.length > 0 && (
               <div style={{ marginBottom: '1.5rem' }}>

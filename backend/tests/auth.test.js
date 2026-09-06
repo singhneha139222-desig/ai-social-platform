@@ -57,7 +57,6 @@ describe('Auth Controller', () => {
       });
       expect(User.create).toHaveBeenCalledWith(expect.objectContaining({
         email: 'test@example.com',
-        phone: null,
       }));
       expect(ApiResponse.created).toHaveBeenCalled();
     });
@@ -86,7 +85,6 @@ describe('Auth Controller', () => {
         $or: [{ username: 'testphone' }, { phone: '+919876543210' }],
       });
       expect(User.create).toHaveBeenCalledWith(expect.objectContaining({
-        email: null,
         phone: '+919876543210',
       }));
       expect(ApiResponse.created).toHaveBeenCalled();

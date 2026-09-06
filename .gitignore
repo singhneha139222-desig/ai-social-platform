@@ -60,3 +60,8 @@ services/ai-service/measure_inference.py
 frontend/test-socket*
 /package.json
 /package-lock.json
+backend/gnn_api_test.js
+backend/malicious.jpg
+backend/test-*.js
+backend/uploads/
+services/ai-service/test_*.py

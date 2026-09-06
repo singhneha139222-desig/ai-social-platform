@@ -7,6 +7,7 @@ from flask import Flask
 from app.routes.moderation import moderation_bp
 from app.routes.sentiment import sentiment_bp
 from app.routes.health import health_bp
+from app.routes.media_moderation import media_bp
 
 logging.basicConfig(
     level=logging.INFO,
@@ -23,6 +24,7 @@ def create_app():
     app.register_blueprint(moderation_bp)
     app.register_blueprint(sentiment_bp)
     app.register_blueprint(health_bp)
+    app.register_blueprint(media_bp)
 
     # Error handlers
     @app.errorhandler(404)
