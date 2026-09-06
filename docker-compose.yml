@@ -45,7 +45,14 @@ services:
       - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
       - JWT_EXPIRES_IN=7d
       - AI_SERVICE_URL=http://ai-service:5001
-      - CLIENT_URL=http://localhost:3000
+      - CLIENT_URL=${CLIENT_URL:-http://localhost:3000}
+      - CLOUDINARY_CLOUD_NAME=dj74x9ppq
+      - CLOUDINARY_API_KEY=726374836959711
+      - CLOUDINARY_API_SECRET=0_CBbFIq_rntzT8DtOk5i9wMk18
+      - SMTP_HOST=smtp.gmail.com
+      - SMTP_PORT=587
+      - SMTP_EMAIL=${SMTP_EMAIL:-your_email@gmail.com}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-your_app_password}
       - NODE_ENV=production
     depends_on:
       mongodb:
@@ -58,18 +65,7 @@ services:
       timeout: 5s
       retries: 3
 
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        - VITE_API_URL=/api/v1
-    container_name: ai-social-frontend
-    ports:
-      - "3000:80"
-    depends_on:
-      backend:
-        condition: service_healthy
+
 
 volumes:
   mongo-data:
