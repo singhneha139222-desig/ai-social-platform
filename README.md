@@ -91,6 +91,7 @@ cp ../.env.example .env
 # AI Service
 cd ../services/ai-service
 pip install -r requirements.txt
+cp ../../.env.example .env
 
 # Frontend
 cd ../../frontend
