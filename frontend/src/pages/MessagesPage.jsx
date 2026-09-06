@@ -2,10 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { useToast } from '../context/ToastContext';
-import { messageAPI, userAPI } from '../services/api';
-import { Search, Send, ArrowLeft, Check, CheckCheck, Edit } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import { getMediaUrl } from '../utils/mediaUtils';
+import { messageAPI, userAPI, mediaAPI } from '../services/api';
+import { Search, Edit, Send, Info, User, Check, CheckCheck, Inbox, Image, Mic, Heart, ArrowLeft } from 'lucide-react';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
 const BASE_URL = API_URL.replace('/api/v1', '');
+import StickerPicker from '../components/StickerPicker';
 
 export default function MessagesPage() {
   const { user } = useAuth();
@@ -31,6 +34,12 @@ export default function MessagesPage() {
   
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
 
   // Fetch initial conversations
   useEffect(() => {
@@ -208,12 +217,109 @@ export default function MessagesPage() {
     }, 2000);
   };
 
-  const sendMessage = async (e) => {
-    e.preventDefault();
-    if (!messageText.trim() || !activeConversation) return;
+  const sendMediaMessage = async (mediaUrl, mediaType, text = '') => {
+    if (!activeConversation) return;
+    try {
+      const res = await messageAPI.sendMessage(activeConversation._id, text, null, mediaUrl, mediaType);
+      setMessages(prev => [res.data.data.message, ...prev]);
+      fetchConversations();
+    } catch (err) {
+      toast.error('Failed to send media');
+    }
+  };
+
+  const handleHeartClick = () => {
+    if (!activeConversation) return;
+    sendMediaMessage(null, null, '❤️');
+  };
+
+  const handleImageClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
     
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size must be less than 5MB');
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('media', file);
+      toast.info('Uploading image...');
+      const res = await mediaAPI.uploadMedia(formData);
+      const mediaUrl = res.data.data.url;
+      await sendMediaMessage(mediaUrl, 'image');
+      toast.success('Image sent');
+    } catch (err) {
+      toast.error('Failed to upload image');
+    } finally {
+      e.target.value = ''; // Reset input
+    }
+  };
+
+  const toggleRecording = async () => {
+    if (isRecording) {
+      // Stop recording
+      mediaRecorderRef.current?.stop();
+      setIsRecording(false);
+    } else {
+      // Start recording
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mediaRecorder = new MediaRecorder(stream);
+        mediaRecorderRef.current = mediaRecorder;
+        audioChunksRef.current = [];
+
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) audioChunksRef.current.push(e.data);
+        };
+
+        mediaRecorder.onstop = async () => {
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          const formData = new FormData();
+          formData.append('media', audioBlob, 'voice_note.webm');
+          
+          try {
+            toast.info('Uploading voice note...');
+            const res = await mediaAPI.uploadMedia(formData);
+            await sendMediaMessage(res.data.data.url, 'audio');
+            toast.success('Voice note sent');
+          } catch (err) {
+            toast.error('Failed to upload voice note');
+          }
+          
+          // Cleanup tracks
+          stream.getTracks().forEach(track => track.stop());
+        };
+
+        mediaRecorder.start();
+        setIsRecording(true);
+        setRecordingTime(0);
+      } catch (err) {
+        toast.error('Could not access microphone');
+      }
+    }
+  };
+
+  // Timer for recording
+  useEffect(() => {
+    let interval;
+    if (isRecording) {
+      interval = setInterval(() => setRecordingTime(t => t + 1), 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isRecording]);
+
+  const sendMessage = async (e, stickerUrl = null) => {
+    if (e) e.preventDefault();
     const text = messageText.trim();
-    setMessageText('');
+    if ((!text && !stickerUrl) || !activeConversation) return;
+    
+    if (!stickerUrl) setMessageText('');
     setIsTyping(false);
     clearTimeout(typingTimeoutRef.current);
     socket?.emit('typing:stop', { 
@@ -222,12 +328,12 @@ export default function MessagesPage() {
     });
 
     try {
-      const res = await messageAPI.sendMessage(activeConversation._id, text);
+      const res = await messageAPI.sendMessage(activeConversation._id, stickerUrl ? '' : text, stickerUrl);
       setMessages(prev => [res.data.data.message, ...prev]);
       fetchConversations(); 
     } catch (err) {
       toast.error('Failed to send message');
-      setMessageText(text);
+      if (!stickerUrl) setMessageText(text);
     }
   };
   
@@ -255,7 +361,7 @@ export default function MessagesPage() {
   };
 
   const getAvatar = (u) => {
-    if (u?.avatar) return `${BASE_URL}${u.avatar}`;
+    if (u?.avatar) return getMediaUrl(u.avatar, BASE_URL);
     return null;
   };
 
@@ -486,15 +592,34 @@ export default function MessagesPage() {
                     alignItems: isMe ? 'flex-end' : 'flex-start'
                   }}>
                     <div style={{ 
-                      padding: '10px 15px', 
+                      padding: msg.text === '❤️' && !msg.mediaUrl && !msg.stickerUrl ? '0' : '10px 15px', 
                       borderRadius: '18px', 
-                      background: isMe ? 'var(--accent-primary)' : 'var(--bg-secondary)', 
+                      background: msg.text === '❤️' && !msg.mediaUrl && !msg.stickerUrl ? 'transparent' : (isMe ? 'var(--accent-primary)' : 'var(--bg-secondary)'), 
                       color: isMe ? 'white' : 'var(--text-primary)',
                       borderBottomRightRadius: isMe ? '4px' : '18px',
                       borderBottomLeftRadius: isMe ? '18px' : '4px',
                       wordBreak: 'break-word'
                     }}>
-                      {msg.text}
+                      {msg.text === '❤️' && !msg.mediaUrl && !msg.stickerUrl ? (
+                        <div style={{ fontSize: '4rem', lineHeight: '1', animation: 'heartbeat 1.5s infinite' }}>❤️</div>
+                      ) : (
+                        msg.text
+                      )}
+                      {msg.stickerUrl && (
+                        <div style={{ marginTop: msg.text ? '8px' : '0' }}>
+                          <img src={msg.stickerUrl} alt="Sticker" style={{ width: '120px', height: '120px', objectFit: 'contain', backgroundColor: 'transparent' }} />
+                        </div>
+                      )}
+                      {msg.mediaUrl && msg.mediaType === 'image' && (
+                        <div style={{ marginTop: msg.text ? '8px' : '0', borderRadius: '8px', overflow: 'hidden' }}>
+                          <img src={getMediaUrl(msg.mediaUrl, `${API_URL}/media`)} alt="Sent image" style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain' }} />
+                        </div>
+                      )}
+                      {msg.mediaUrl && msg.mediaType === 'audio' && (
+                        <div style={{ marginTop: msg.text ? '8px' : '0' }}>
+                          <audio src={getMediaUrl(msg.mediaUrl, `${API_URL}/media`)} controls style={{ height: '40px', outline: 'none', maxWidth: '200px' }} />
+                        </div>
+                      )}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', marginTop: '4px', gap: '4px' }}>
                       <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
@@ -541,41 +666,70 @@ export default function MessagesPage() {
             ) : (
               <div style={{ padding: '15px 20px', borderTop: '1px solid var(--border-color)', background: 'var(--bg-primary)' }}>
                 <form onSubmit={sendMessage} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <input
-                    type="text"
-                    placeholder="Message..."
-                    value={messageText}
-                    onChange={handleTyping}
-                    style={{ 
+                  <div style={{ 
                       flex: 1, 
-                      padding: '12px 20px', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      background: 'var(--bg-secondary)', 
                       borderRadius: '24px', 
                       border: '1px solid var(--border-color)', 
-                      background: 'var(--bg-secondary)', 
-                      color: 'var(--text-primary)',
-                      outline: 'none'
-                    }}
-                    maxLength={1000}
-                  />
-                  <button 
-                    type="submit" 
-                    disabled={!messageText.trim()}
-                    style={{ 
-                      background: messageText.trim() ? 'var(--accent-primary)' : 'var(--bg-secondary)', 
-                      color: messageText.trim() ? 'white' : 'var(--text-muted)',
-                      border: 'none',
-                      borderRadius: '50%',
-                      width: '40px',
-                      height: '40px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: messageText.trim() ? 'pointer' : 'default',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    <Send size={18} style={{ marginLeft: '2px' }} />
-                  </button>
+                      padding: '0 12px' 
+                    }}>
+                    <StickerPicker 
+                      onSelect={(emoji) => setMessageText(prev => prev + emoji)} 
+                      className="flex-shrink-0"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Message..."
+                      value={messageText}
+                      onChange={handleTyping}
+                      style={{ 
+                        flex: 1, 
+                        padding: '12px 12px', 
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--text-primary)',
+                        outline: 'none'
+                      }}
+                      maxLength={1000}
+                    />
+                    {!messageText.trim() && !isRecording && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-primary)' }}>
+                        <Mic size={20} style={{ cursor: 'pointer' }} onClick={toggleRecording} />
+                        <Image size={20} style={{ cursor: 'pointer' }} onClick={handleImageClick} />
+                        <Heart size={20} style={{ cursor: 'pointer' }} onClick={handleHeartClick} />
+                      </div>
+                    )}
+                    {isRecording && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#e74c3c' }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#e74c3c', animation: 'blink 1s infinite' }} />
+                        <span style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>
+                          {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
+                        </span>
+                        <Mic size={20} style={{ cursor: 'pointer' }} onClick={toggleRecording} />
+                      </div>
+                    )}
+                  </div>
+                  
+                  <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept="image/*" onChange={handleImageUpload} />
+                  
+                  {messageText.trim() && (
+                    <button 
+                      type="submit" 
+                      style={{ 
+                        background: 'transparent', 
+                        color: 'var(--accent-primary)',
+                        border: 'none',
+                        fontWeight: 'bold',
+                        fontSize: '1rem',
+                        cursor: 'pointer',
+                        padding: '8px 4px'
+                      }}
+                    >
+                      Send
+                    </button>
+                  )}
                 </form>
               </div>
             )}
@@ -596,6 +750,18 @@ export default function MessagesPage() {
       </div>
 
       <style>{`
+        @keyframes blink {
+          0% { opacity: 1; }
+          50% { opacity: 0; }
+          100% { opacity: 1; }
+        }
+        @keyframes heartbeat {
+          0% { transform: scale(1); }
+          14% { transform: scale(1.3); }
+          28% { transform: scale(1); }
+          42% { transform: scale(1.3); }
+          70% { transform: scale(1); }
+        }
         @media (max-width: 768px) {
           .hidden-mobile {
             display: none !important;

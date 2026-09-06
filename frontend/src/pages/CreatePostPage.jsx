@@ -4,6 +4,7 @@ import api, { postAPI } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import { useSocket } from '../context/SocketContext';
 import { Send, AlertTriangle, CheckCircle, Clock, Image as ImageIcon, X } from 'lucide-react';
+import StickerPicker from '../components/StickerPicker';
 
 export default function CreatePostPage() {
   const [content, setContent] = useState('');
@@ -11,6 +12,7 @@ export default function CreatePostPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [pendingPostId, setPendingPostId] = useState(null);
+  const [step, setStep] = useState(1);
   const fileInputRef = useRef(null);
   const toast = useToast();
   const navigate = useNavigate();
@@ -74,6 +76,7 @@ export default function CreatePostPage() {
       }
 
       const payload = { content };
+      
       if (mediaData) {
         payload.mediaUrl = mediaData.filename;
         payload.mediaType = mediaData.type;
@@ -110,76 +113,145 @@ export default function CreatePostPage() {
   };
 
   return (
-    <div className="feed-container">
-      <div className="page-header">
-        <h1>Create Post</h1>
-        <p>Share your thoughts safely with the community.</p>
-      </div>
-
-      <div className="post-composer">
-        <form onSubmit={handleSubmit}>
-          <textarea
-            placeholder="What's on your mind?"
-            value={content}
-            onChange={(e) => { setContent(e.target.value); setResult(null); }}
-            maxLength={MAX_LENGTH}
-            required
-            aria-label="Post content"
-          />
-          
-          {mediaFile && (
-            <div className="media-preview" style={{ position: 'relative', marginTop: '10px', display: 'inline-block' }}>
-              {mediaFile.type.startsWith('image/') ? (
-                <img src={URL.createObjectURL(mediaFile)} alt="Preview" style={{ maxHeight: '150px', borderRadius: '8px' }} />
-              ) : (
-                <video src={URL.createObjectURL(mediaFile)} style={{ maxHeight: '150px', borderRadius: '8px' }} controls />
-              )}
-              <button 
-                type="button" 
-                onClick={() => { setMediaFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
-                style={{ position: 'absolute', top: '-10px', right: '-10px', background: 'red', color: 'white', borderRadius: '50%', border: 'none', cursor: 'pointer' }}
-              >
-                <X size={16} />
-              </button>
-            </div>
+    <div className="feed-container" style={{ maxWidth: '600px', margin: '0 auto', paddingTop: '20px' }}>
+      <div className="post-composer-card" style={{ backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+        
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}>
+          {step === 1 ? (
+            <div style={{ width: '24px' }}></div>
+          ) : (
+            <button onClick={() => setStep(1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)' }}>
+              <X size={24} />
+            </button>
           )}
-          
-          <div className="post-composer__footer">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <button 
-                type="button" 
-                className="btn btn--outline" 
-                onClick={() => fileInputRef.current?.click()}
-                disabled={loading}
-              >
-                <ImageIcon size={16} /> Add Media
-              </button>
+          <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '600' }}>Create new post</h3>
+          {step === 1 ? (
+            <button 
+              onClick={() => setStep(2)} 
+              style={{ background: 'none', border: 'none', color: '#0095f6', fontWeight: 'bold', cursor: 'pointer' }}
+              disabled={!mediaFile && !content.trim()}
+            >
+              Next
+            </button>
+          ) : (
+            <button 
+              onClick={handleSubmit} 
+              disabled={loading || (!content.trim() && !mediaFile)}
+              style={{ background: 'none', border: 'none', color: '#0095f6', fontWeight: 'bold', cursor: loading ? 'not-allowed' : 'pointer' }}
+            >
+              {loading ? 'Sharing...' : 'Share'}
+            </button>
+          )}
+        </div>
+
+        {/* Body */}
+        <div style={{ minHeight: '400px', display: 'flex', flexDirection: 'column' }}>
+          {step === 1 && (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', position: 'relative' }}>
+              {!mediaFile ? (
+                <>
+                  <ImageIcon size={64} style={{ color: 'var(--text-muted)', marginBottom: '16px' }} />
+                  <h2 style={{ fontSize: '1.25rem', marginBottom: '24px', fontWeight: '400' }}>Upload photos or videos here</h2>
+                  <button 
+                    className="btn btn--primary" 
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    Select from computer
+                  </button>
+                </>
+              ) : (
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                  {mediaFile.type.startsWith('image/') ? (
+                    <img src={URL.createObjectURL(mediaFile)} alt="Preview" style={{ maxHeight: '400px', maxWidth: '100%', objectFit: 'contain' }} />
+                  ) : (
+                    <video src={URL.createObjectURL(mediaFile)} style={{ maxHeight: '400px', maxWidth: '100%', objectFit: 'contain' }} controls />
+                  )}
+                  <div style={{ position: 'absolute', bottom: '16px', right: '16px', background: 'rgba(0,0,0,0.6)', borderRadius: '50%', padding: '8px', cursor: 'pointer' }} onClick={() => fileInputRef.current?.click()}>
+                    <ImageIcon size={20} color="white" />
+                  </div>
+                </div>
+              )}
+              
               <input 
                 type="file" 
                 ref={fileInputRef} 
                 onChange={(e) => {
                   if (e.target.files && e.target.files[0]) {
-                    setMediaFile(e.target.files[0]);
-                    setResult(null);
+                    const file = e.target.files[0];
+                    if (file.type.startsWith('video/')) {
+                      const video = document.createElement('video');
+                      video.preload = 'metadata';
+                      video.onloadedmetadata = function() {
+                        window.URL.revokeObjectURL(video.src);
+                        if (video.duration > 60) {
+                          toast.error('Video must be 60 seconds or less');
+                          if (fileInputRef.current) fileInputRef.current.value = '';
+                          return;
+                        }
+                        setMediaFile(file);
+                        setResult(null);
+                      };
+                      video.src = URL.createObjectURL(file);
+                    } else {
+                      setMediaFile(file);
+                      setResult(null);
+                    }
                   }
                 }} 
                 accept="image/*,video/*" 
                 style={{ display: 'none' }} 
               />
-              <span className={`post-composer__chars ${content.length > MAX_LENGTH * 0.9 ? 'error' : ''}`}>
-                {content.length}/{MAX_LENGTH}
-              </span>
+              
+              {/* Fallback text input if they just want a text post */}
+              {!mediaFile && (
+                <div style={{ marginTop: '40px', width: '100%' }}>
+                  <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '8px' }}>Or just write something</p>
+                  <textarea
+                    placeholder="What's on your mind?"
+                    value={content}
+                    onChange={(e) => { setContent(e.target.value); setResult(null); }}
+                    style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', resize: 'none', height: '100px' }}
+                  />
+                </div>
+              )}
             </div>
-            
-            <button className="btn btn--primary" disabled={loading || (!content.trim() && !mediaFile)} type="submit">
-              {loading ? 'Analyzing...' : <><Send size={16} /> Publish Post</>}
-            </button>
-          </div>
-        </form>
+          )}
+
+          {step === 2 && (
+            <div style={{ display: 'flex', flex: 1, padding: '16px', gap: '16px', alignItems: 'flex-start' }}>
+              {mediaFile && (
+                <div style={{ width: '100px', height: '100px', flexShrink: 0 }}>
+                  {mediaFile.type.startsWith('image/') ? (
+                    <img src={URL.createObjectURL(mediaFile)} alt="Thumb" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }} />
+                  ) : (
+                    <video src={URL.createObjectURL(mediaFile)} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }} />
+                  )}
+                </div>
+              )}
+              
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <textarea
+                  placeholder="Write a caption..."
+                  value={content}
+                  onChange={(e) => { setContent(e.target.value); setResult(null); }}
+                  maxLength={MAX_LENGTH}
+                  style={{ width: '100%', border: 'none', background: 'transparent', resize: 'none', outline: 'none', minHeight: '100px', fontSize: '1rem', color: 'var(--text-primary)' }}
+                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '8px' }}>
+                  <StickerPicker onSelect={(emoji) => setContent(prev => prev + emoji)} />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    {content.length}/{MAX_LENGTH}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
       
       {result && (
-        <div className={`toast ${resultClass()}`} style={{ animation: 'none' }}>
+        <div className={`toast ${resultClass()}`} style={{ marginTop: '20px' }}>
           {resultIcon()}
           {result.message}
         </div>

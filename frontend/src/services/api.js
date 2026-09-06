@@ -34,6 +34,7 @@ api.interceptors.response.use(
 
 // Auth APIs
 export const authAPI = {
+  requestOtp: (data) => api.post('/auth/request-otp', data),
   register: (data) => api.post('/auth/register', data),
   login: (data) => api.post('/auth/login', data),
   getMe: () => api.get('/auth/me'),
@@ -55,8 +56,9 @@ export const userAPI = {
   searchUsers: (q) => api.get(`/users/search?q=${encodeURIComponent(q)}`),
   checkUsername: (username) => api.get(`/users/check-username?username=${encodeURIComponent(username)}`),
   getFollowRequests: () => api.get('/users/follow-requests'),
-  acceptFollowRequest: (id) => api.post(`/users/${id}/accept-follow`),
-  rejectFollowRequest: (id) => api.post(`/users/${id}/reject-follow`),
+  acceptFollowRequest: (userId) => api.post(`/users/${userId}/accept-follow`),
+  rejectFollowRequest: (userId) => api.post(`/users/${userId}/reject-follow`),
+  getSuggestedUsers: () => api.get('/users/suggested'),
 };
 
 // Post APIs
@@ -67,6 +69,9 @@ export const postAPI = {
   getUserPosts: (userId, page = 1) => api.get(`/posts/user/${userId}?page=${page}`),
   likePost: (id) => api.post(`/posts/${id}/like`),
   unlikePost: (id) => api.delete(`/posts/${id}/like`),
+  savePost: (id) => api.post(`/posts/${id}/save`),
+  unsavePost: (id) => api.delete(`/posts/${id}/save`),
+  sharePost: (id) => api.post(`/posts/${id}/share`),
   getComments: (postId, page = 1) => api.get(`/posts/${postId}/comments?page=${page}`),
   createComment: (postId, data) => api.post(`/posts/${postId}/comments`, data),
 };
@@ -106,10 +111,18 @@ export const messageAPI = {
   getConversations: () => api.get('/messages/conversations'),
   createConversation: (userId) => api.post('/messages/conversations', { userId }),
   getMessages: (conversationId, page = 1) => api.get(`/messages/conversations/${conversationId}?page=${page}`),
-  sendMessage: (conversationId, text) => api.post(`/messages/conversations/${conversationId}/messages`, { text }),
+  sendMessage: (conversationId, text, stickerUrl, mediaUrl, mediaType) => api.post(`/messages/conversations/${conversationId}/messages`, { text, stickerUrl, mediaUrl, mediaType }),
   markAsRead: (conversationId) => api.patch(`/messages/conversations/${conversationId}/read`),
   acceptRequest: (conversationId) => api.patch(`/messages/conversations/${conversationId}/accept`),
   deleteConversation: (conversationId) => api.delete(`/messages/conversations/${conversationId}`),
+};
+
+
+// Media APIs
+export const mediaAPI = {
+  uploadMedia: (formData) => api.post('/media/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
 };
 
 export default api;

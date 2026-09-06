@@ -29,7 +29,7 @@ const { getIo } = require('../utils/socket');
  */
 async function createPost(req, res, next) {
   try {
-    const { content, mediaUrl, mediaType, mimeType, mediaSize } = req.body;
+    const { content, mediaUrl, mediaType, mimeType, mediaSize, stickerUrl } = req.body;
     const authorId = req.user._id;
 
     const mediaObj = { type: 'none' };
@@ -45,6 +45,7 @@ async function createPost(req, res, next) {
       author: authorId,
       content: content || '',
       media: mediaObj,
+      stickerUrl: stickerUrl || null,
       moderationStatus: MODERATION_STATUS.PENDING,
       moderationReason: 'Pending AI review',
       wordFrequencies: content ? wordFrequency(content) : {},
@@ -72,22 +73,27 @@ async function createPost(req, res, next) {
 
         // Moderate Media if present
         if (post.media && post.media.url) {
-          const path = require('path');
-          const mediaAbsolutePath = path.join(__dirname, '../../uploads/media', post.media.url);
+          const mediaUrl = post.media.url; // Cloudinary URL
           
           if (post.media.type === 'image') {
-            toxicityResult = await aiService.analyzeImage(mediaAbsolutePath);
+            toxicityResult = await aiService.analyzeImage(mediaUrl);
           } else if (post.media.type === 'video') {
-            toxicityResult = await aiService.analyzeVideo(mediaAbsolutePath);
+            toxicityResult = await aiService.analyzeVideo(mediaUrl);
           }
           moderationResult = moderationService.moderateMedia(toxicityResult);
         } else {
-          // Moderate Text
-          toxicityResult = await aiService.analyzeToxicity(content);
-          moderationResult = moderationService.moderate(toxicityResult);
+          // Moderate Text only if content exists
+          if (content && content.trim().length > 0) {
+            toxicityResult = await aiService.analyzeToxicity(content);
+            moderationResult = moderationService.moderate(toxicityResult);
+          } else {
+            // Safe by default if only a sticker was posted
+            toxicityResult = { categories: {}, model: 'bypass' };
+            moderationResult = { decision: 'publish', status: 'published', toxicityScore: 0.0, reason: 'Sticker only' };
+          }
         }
-        // If published, run sentiment analysis
-        if (moderationResult.decision === 'publish') {
+        // If published and has content, run sentiment analysis
+        if (moderationResult.decision === 'publish' && content && content.trim().length > 0) {
           try {
             sentimentResult = await aiService.analyzeSentiment(content);
           } catch (error) {
@@ -339,4 +345,24 @@ async function getUserPosts(req, res, next) {
   }
 }
 
-module.exports = { createPost, getPost, deletePost, getUserPosts };
+/**
+ * POST /api/v1/posts/:id/share
+ */
+async function sharePost(req, res, next) {
+  try {
+    const postId = req.params.id;
+    
+    const post = await Post.findById(postId);
+    if (!post || !PUBLIC_STATUSES.includes(post.moderationStatus)) {
+      return ApiResponse.notFound(res, 'Post not found');
+    }
+
+    await Post.findByIdAndUpdate(postId, { $inc: { sharesCount: 1 } });
+    
+    return ApiResponse.success(res, { shared: true }, 'Post shared');
+  } catch (error) {
+    next(error);
+  }
+}
+
+module.exports = { createPost, getPost, deletePost, getUserPosts, sharePost };

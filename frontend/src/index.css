@@ -1,0 +1,53 @@
+/* Explore Container and Grid */
+.explore-container {
+  max-width: 935px;
+  margin: 0 auto;
+}
+.explore-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-flow: dense;
+  gap: 4px;
+}
+
+.explore-grid-item {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  background-color: var(--bg-secondary);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.explore-grid-media {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.explore-grid-video-item {
+  aspect-ratio: 9 / 16;
+  grid-row: span 2;
+}
+
+.explore-media-icon {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  filter: drop-shadow(0px 0px 2px rgba(0,0,0,0.5));
+}
+
+.explore-grid-text {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  text-align: center;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--border-color) 100%);
+}
+

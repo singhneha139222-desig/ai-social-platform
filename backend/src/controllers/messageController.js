@@ -183,14 +183,14 @@ exports.getMessages = async (req, res, next) => {
 exports.sendMessage = async (req, res, next) => {
   try {
     const { conversationId } = req.params;
-    const { text } = req.body;
+    const { text, stickerUrl, mediaUrl, mediaType } = req.body;
     const senderId = req.user.id;
 
-    if (!text || !text.trim()) {
-      return ApiResponse.badRequest(res, 'Message text is required');
+    if ((!text || !text.trim()) && !stickerUrl && !mediaUrl) {
+      return ApiResponse.badRequest(res, 'Message text, sticker, or media is required');
     }
 
-    if (text.trim().length > 1000) {
+    if (text && text.trim().length > 1000) {
       return ApiResponse.badRequest(res, 'Message text must be 1000 characters or less');
     }
 
@@ -211,11 +211,20 @@ exports.sendMessage = async (req, res, next) => {
       conversationId,
       senderId,
       receiverId,
-      text: text.trim(),
+      text: text ? text.trim() : '',
+      stickerUrl: stickerUrl || null,
+      mediaUrl: mediaUrl || null,
+      mediaType: mediaType || null,
       status: 'sent'
     });
 
-    // Update conversation last message and recipient unread count
+    let lastMessageText = message.text;
+    if (message.mediaUrl) {
+      lastMessageText = `[${message.mediaType === 'audio' ? 'Voice Message' : (message.mediaType === 'image' ? 'Image' : 'Media')}] ${message.text || ''}`.trim();
+    } else if (message.stickerUrl) {
+      lastMessageText = `[Sticker] ${message.text || ''}`.trim();
+    }
+
     const updatePath = `unreadCounts.${receiverId}`;
     await Conversation.findByIdAndUpdate(
       conversationId,
@@ -223,7 +232,7 @@ exports.sendMessage = async (req, res, next) => {
         lastMessage: {
           messageId: message._id,
           senderId,
-          text: message.text,
+          text: lastMessageText,
           createdAt: message.createdAt
         },
         $inc: { [updatePath]: 1 }

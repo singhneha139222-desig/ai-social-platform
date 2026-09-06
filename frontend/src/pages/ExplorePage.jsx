@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { feedAPI, userAPI } from '../services/api';
-import PostCard from '../components/PostCard';
+import ExploreGridItem from '../components/ExploreGridItem';
 import { useToast } from '../context/ToastContext';
 import { Search, Compass, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -15,18 +15,38 @@ export default function ExplorePage() {
   const [pagination, setPagination] = useState(null);
   const toast = useToast();
 
+  const fetchExplore = async (p = 1) => {
+    setLoading(true);
+    try {
+      const res = await feedAPI.getExplore(p);
+      const newPosts = res.data.data.posts || [];
+      if (p === 1) {
+        setPosts(newPosts);
+      } else {
+        setPosts((prev) => [...prev, ...newPosts]);
+      }
+      setPagination(res.data.data.pagination);
+    } catch {
+      toast.error('Failed to load explore');
+    }
+    setLoading(false);
+  };
+
   useEffect(() => {
-    const fetchExplore = async () => {
-      setLoading(true);
-      try {
-        const res = await feedAPI.getExplore(page);
-        setPosts(res.data.data.posts || []);
-        setPagination(res.data.data.pagination);
-      } catch { toast.error('Failed to load explore'); }
-      setLoading(false);
-    };
-    fetchExplore();
+    fetchExplore(page);
   }, [page]);
+
+  const observer = useRef();
+  const lastPostElementRef = useCallback(node => {
+    if (loading) return;
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && pagination && pagination.hasNextPage) {
+        setPage(prevPage => prevPage + 1);
+      }
+    });
+    if (node) observer.current.observe(node);
+  }, [loading, pagination]);
 
   useEffect(() => {
     if (!query.trim()) {
@@ -47,7 +67,7 @@ export default function ExplorePage() {
   }, [query]);
 
   return (
-    <div className="feed-container">
+    <div className="explore-container">
       <div className="page-header" style={{ marginBottom: '1.5rem' }}>
         <div style={{ position: 'relative' }}>
           <Search size={20} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
@@ -97,10 +117,10 @@ export default function ExplorePage() {
         </div>
       ) : (
         <>
-          {loading ? (
-            <div className="feed-list">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="card"><div className="skeleton" style={{ height: 120 }} /></div>
+          {loading && page === 1 ? (
+            <div className="explore-grid">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="explore-grid-item" style={{ backgroundColor: 'var(--border-color)' }}></div>
               ))}
             </div>
           ) : posts.length === 0 ? (
@@ -110,18 +130,22 @@ export default function ExplorePage() {
               <div className="empty-state__text">Check back later for new content</div>
             </div>
           ) : (
-            <div className="feed-list">
-              {posts.map((post) => <PostCard key={post._id} post={post} onDelete={(id) => setPosts(p => p.filter(x => x._id !== id))} />)}
+            <div className="explore-grid">
+              {posts.map((post, index) => {
+                if (posts.length === index + 1) {
+                  return (
+                    <div ref={lastPostElementRef} key={post._id} style={{ height: '100%' }}>
+                      <ExploreGridItem post={post} />
+                    </div>
+                  );
+                } else {
+                  return <ExploreGridItem key={post._id} post={post} />;
+                }
+              })}
             </div>
           )}
           
-          {pagination && pagination.totalPages > 1 && (
-            <div className="pagination">
-              <button className="pagination__btn" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</button>
-              <span className="pagination__info">Page {page} of {pagination.totalPages}</span>
-              <button className="pagination__btn" disabled={!pagination.hasNextPage} onClick={() => setPage(page + 1)}>Next</button>
-            </div>
-          )}
+          {loading && page > 1 && <div className="loading" style={{ textAlign: 'center', marginTop: '20px' }}>Loading...</div>}
         </>
       )}
     </div>

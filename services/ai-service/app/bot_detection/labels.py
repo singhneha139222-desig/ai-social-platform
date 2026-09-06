@@ -19,14 +19,14 @@ def generate_weak_labels(label_signals_df: pd.DataFrame) -> pd.DataFrame:
     
     # Signal 2: Excessive posting
     if df['posts_count'].max() > 0:
-        p95_posts = np.percentile(df['posts_count'], 95)
-        excessive_posts = df['posts_count'] > max(p95_posts, 20)
+        p95_posts = np.percentile(df['posts_count'], 90) # Top 10%
+        excessive_posts = df['posts_count'] >= max(p95_posts, 20)
         df.loc[excessive_posts, 'bot_score'] += 0.3
         
     # Signal 3: Excessive likes given
     if df['likes_given'].max() > 0:
-        p95_likes = np.percentile(df['likes_given'], 95)
-        excessive_likes = df['likes_given'] > max(p95_likes, 50)
+        p95_likes = np.percentile(df['likes_given'], 90) # Top 10%
+        excessive_likes = df['likes_given'] >= max(p95_likes, 50)
         df.loc[excessive_likes, 'bot_score'] += 0.3
         
     # Signal 4: Human-like behavior (decreases bot score)
@@ -39,7 +39,7 @@ def generate_weak_labels(label_signals_df: pd.DataFrame) -> pd.DataFrame:
     
     # Assign weak labels
     df['weak_label'] = np.nan
-    df.loc[df['bot_score'] > 0.8, 'weak_label'] = 1.0
-    df.loc[df['bot_score'] < 0.2, 'weak_label'] = 0.0
+    df.loc[df['bot_score'] >= 0.7, 'weak_label'] = 1.0
+    df.loc[df['bot_score'] <= 0.2, 'weak_label'] = 0.0
     
     return df

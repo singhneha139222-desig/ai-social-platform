@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { View, TextInput, Button, StyleSheet, Text, ActivityIndicator, Alert, Image, TouchableOpacity } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { postAPI, mediaAPI } from '../services/api';
+import StickerPicker from '../components/StickerPicker';
 
 export default function CreatePostScreen({ navigation }) {
   const [content, setContent] = useState('');
   const [media, setMedia] = useState(null);
+  const [stickerUrl, setStickerUrl] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const pickMedia = async () => {
@@ -21,7 +23,7 @@ export default function CreatePostScreen({ navigation }) {
   };
 
   const handleSubmit = async () => {
-    if (!content.trim() && !media) return;
+    if (!content.trim() && !media && !stickerUrl) return;
     setLoading(true);
     try {
       let mediaData = null;
@@ -39,6 +41,8 @@ export default function CreatePostScreen({ navigation }) {
       }
 
       const payload = { content };
+      if (stickerUrl) payload.stickerUrl = stickerUrl;
+      
       if (mediaData) {
         payload.mediaUrl = mediaData.filename;
         payload.mediaType = mediaData.type;
@@ -49,6 +53,7 @@ export default function CreatePostScreen({ navigation }) {
       await postAPI.create(payload);
       setContent('');
       setMedia(null);
+      setStickerUrl(null);
       Alert.alert('Success', 'Post submitted for AI review!');
       navigation.navigate('Feed');
     } catch (err) {
@@ -81,12 +86,24 @@ export default function CreatePostScreen({ navigation }) {
         </View>
       )}
 
+      {stickerUrl && (
+        <View style={styles.stickerContainer}>
+          <Image source={{ uri: stickerUrl }} style={styles.stickerPreview} resizeMode="contain" />
+          <TouchableOpacity style={styles.removeMedia} onPress={() => setStickerUrl(null)}>
+            <Text style={{ color: 'white', fontWeight: 'bold' }}>X</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       <View style={styles.actions}>
-        <Button title="Attach Image/Video" onPress={pickMedia} color="#666" />
+        <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
+          <Button title="Attach Image/Video" onPress={pickMedia} color="#666" />
+          <StickerPicker onSelect={setStickerUrl} style={{ justifyContent: 'center' }} />
+        </View>
         {loading ? (
           <ActivityIndicator size="large" color="#0052cc" />
         ) : (
-          <Button title="Publish Post" onPress={handleSubmit} color="#0052cc" disabled={!content.trim() && !media} />
+          <Button title="Publish Post" onPress={handleSubmit} color="#0052cc" disabled={!content.trim() && !media && !stickerUrl} />
         )}
       </View>
     </View>
@@ -106,7 +123,9 @@ const styles = StyleSheet.create({
     minHeight: 120,
   },
   mediaContainer: { position: 'relative', marginBottom: 20 },
+  stickerContainer: { position: 'relative', marginBottom: 20, alignItems: 'center' },
   mediaPreview: { width: '100%', height: 200, borderRadius: 8 },
+  stickerPreview: { width: 120, height: 120 },
   removeMedia: { position: 'absolute', top: -10, right: -10, backgroundColor: 'red', width: 24, height: 24, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   actions: { gap: 12 },
 });

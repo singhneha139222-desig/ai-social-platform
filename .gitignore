@@ -65,3 +65,4 @@ backend/malicious.jpg
 backend/test-*.js
 backend/uploads/
 services/ai-service/test_*.py
+backend/scripts/

@@ -42,6 +42,10 @@ export function AuthProvider({ children }) {
     return userData;
   }, []);
 
+  const requestOtp = useCallback(async (data) => {
+    return await authAPI.requestOtp(data);
+  }, []);
+
   const register = useCallback(async (data) => {
     const res = await authAPI.register(data);
     const { token, user: userData } = res.data.data;
@@ -64,7 +68,7 @@ export function AuthProvider({ children }) {
   }, [user]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, loading, login, register, requestOtp, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

@@ -7,7 +7,7 @@ import useUsernameAvailability from '../hooks/useUsernameAvailability';
 import { CheckCircle2, XCircle, Loader2, HelpCircle } from 'lucide-react';
 
 export default function RegisterPage() {
-  const { register } = useAuth();
+  const { register, requestOtp } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   
@@ -23,6 +23,9 @@ export default function RegisterPage() {
   
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [ageError, setAgeError] = useState('');
+  const [step, setStep] = useState(1);
+  const [otpCode, setOtpCode] = useState('');
   
   const { status: usernameStatus, suggestions, error: usernameError } = useUsernameAvailability(form.username);
 
@@ -47,13 +50,59 @@ export default function RegisterPage() {
     const day = String(form.dobDay).padStart(2, '0');
     const dateOfBirth = `${form.dobYear}-${month}-${day}`;
     
+    // Validate Age
+    const dob = new Date(dateOfBirth);
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const m = today.getMonth() - dob.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+      age--;
+    }
+
+    if (age < 14) {
+      setAgeError('It looks like you entered the wrong info. Please be sure to use your real birthday.');
+      return;
+    }
+
+    setAgeError('');
+    
     setLoading(true);
     try {
-      await register({ ...form, dateOfBirth });
+      await requestOtp({ username: form.username, contact: form.contact });
+      toast.success('Confirmation code sent!');
+      setStep(2);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'An account with this email, mobile number, or username already exists.');
+    }
+    setLoading(false);
+  };
+
+  const handleOtpSubmit = async (e) => {
+    e.preventDefault();
+    if (!otpCode.trim()) return;
+
+    setLoading(true);
+    try {
+      const month = String(form.dobMonth).padStart(2, '0');
+      const day = String(form.dobDay).padStart(2, '0');
+      const dateOfBirth = `${form.dobYear}-${month}-${day}`;
+
+      await register({ ...form, dateOfBirth, otp: otpCode });
       toast.success('Account created! Welcome!');
       navigate('/feed');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'An account with this email or mobile number already exists.');
+      toast.error(err.response?.data?.message || 'Invalid or expired confirmation code.');
+    }
+    setLoading(false);
+  };
+
+  const resendOtp = async () => {
+    setLoading(true);
+    try {
+      await requestOtp({ username: form.username, contact: form.contact });
+      toast.success('Confirmation code resent!');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to resend confirmation code.');
     }
     setLoading(false);
   };
@@ -75,15 +124,17 @@ export default function RegisterPage() {
         {/* Right Form Panel */}
         <div className="auth-form-container">
           <div className="auth-card">
-            <div className="auth-card__header" style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
-              <div className="auth-card__logo-mobile">AI Social</div>
-              <h1>Create an account</h1>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.5rem' }}>
-                Join AI Social and connect with people around you.
-              </p>
-            </div>
-            
-            <form onSubmit={handleSubmit}>
+            {step === 1 ? (
+            <>
+              <div className="auth-card__header" style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
+                <div className="auth-card__logo-mobile">AI Social</div>
+                <h1>Create an account</h1>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.5rem' }}>
+                  Join AI Social and connect with people around you.
+                </p>
+              </div>
+              
+              <form onSubmit={handleSubmit}>
               <div className="form-group" style={{ marginBottom: '1.25rem' }}>
                 <input 
                   id="contact" 
@@ -171,6 +222,11 @@ export default function RegisterPage() {
                     })}
                   </select>
                 </div>
+                {ageError && (
+                  <div style={{ color: 'var(--error-color)', fontSize: '0.85rem', marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+                    {ageError}
+                  </div>
+                )}
               </div>
 
               <div className="form-group" style={{ marginBottom: '1rem' }}>
@@ -261,6 +317,59 @@ export default function RegisterPage() {
                 {loading ? 'Creating account...' : 'Create account'}
               </button>
             </form>
+            </>
+            ) : (
+            <>
+              <div className="auth-card__header" style={{ marginBottom: '1.5rem', textAlign: 'left' }}>
+                <h1 style={{ fontSize: '1.5rem', marginBottom: '8px' }}>Enter the confirmation code</h1>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.5rem' }}>
+                  To confirm your account, enter the 6-digit code we sent to <strong>{form.contact}</strong>.
+                </p>
+              </div>
+              
+              <form onSubmit={handleOtpSubmit}>
+                <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                  <input 
+                    id="otpCode" 
+                    name="otpCode" 
+                    className="form-input" 
+                    placeholder="Confirmation code"
+                    value={otpCode} 
+                    onChange={(e) => setOtpCode(e.target.value)} 
+                    required 
+                    autoFocus 
+                    maxLength={6}
+                    style={{ letterSpacing: '2px', textAlign: 'center', fontSize: '1.2rem', padding: '12px' }}
+                  />
+                </div>
+                
+                <button 
+                  className="btn btn--primary btn--full" 
+                  disabled={loading || otpCode.length < 6} 
+                  type="submit" 
+                  style={{ padding: '0.8rem', marginBottom: '1rem', background: '#0095f6' }}
+                >
+                  {loading ? 'Confirming...' : 'Continue'}
+                </button>
+                
+                <button 
+                  type="button"
+                  onClick={resendOtp}
+                  disabled={loading}
+                  className="btn btn--outline btn--full"
+                  style={{ padding: '0.8rem', border: '1px solid #363636', color: 'var(--text-primary)', background: 'transparent' }}
+                >
+                  I didn't get the code
+                </button>
+                
+                <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+                  <button type="button" onClick={() => setStep(1)} style={{ background: 'none', border: 'none', color: '#0095f6', cursor: 'pointer', fontWeight: 'bold' }}>
+                    Go back
+                  </button>
+                </div>
+              </form>
+            </>
+            )}
             
             <div className="auth-card__footer">
               Already have an account? <Link to="/login">Log in</Link>

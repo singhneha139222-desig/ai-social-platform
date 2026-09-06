@@ -23,7 +23,7 @@ const logger = require('../utils/logger');
  */
 async function createComment(req, res, next) {
   try {
-    const { content, parentComment } = req.body;
+    const { content, parentComment, stickerUrl } = req.body;
     const postId = req.params.postId;
     const authorId = req.user._id;
 
@@ -47,8 +47,13 @@ async function createComment(req, res, next) {
 
     // Toxicity analysis
     try {
-      toxicityResult = await aiService.analyzeToxicity(content);
-      moderationResult = moderationService.moderate(toxicityResult);
+      if (content && content.trim().length > 0) {
+        toxicityResult = await aiService.analyzeToxicity(content);
+        moderationResult = moderationService.moderate(toxicityResult);
+      } else {
+        toxicityResult = { categories: {}, model: 'bypass' };
+        moderationResult = { decision: 'publish', status: 'published', toxicityScore: 0.0, reason: 'Sticker only' };
+      }
     } catch (error) {
       logger.error('AI moderation unavailable during comment creation:', error.message);
       aiAvailable = false;
@@ -59,7 +64,8 @@ async function createComment(req, res, next) {
       const comment = await Comment.create({
         post: postId,
         author: authorId,
-        content,
+        content: content || '',
+        stickerUrl: stickerUrl || null,
         parentComment: parentComment || null,
         moderationStatus: MODERATION_STATUS.PENDING,
         moderationReason: 'AI moderation service unavailable — pending manual review',
@@ -92,7 +98,8 @@ async function createComment(req, res, next) {
     const comment = await Comment.create({
       post: postId,
       author: authorId,
-      content,
+      content: content || '',
+      stickerUrl: stickerUrl || null,
       parentComment: parentComment || null,
       toxicityScore: moderationResult.toxicityScore,
       moderationStatus: moderationResult.status,

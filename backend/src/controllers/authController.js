@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const User = require('../models/User');
+const Otp = require('../models/Otp');
 const config = require('../config/env');
 const ApiResponse = require('../utils/apiResponse');
 const logger = require('../utils/logger');
@@ -35,11 +36,11 @@ function isEmail(str) {
 }
 
 /**
- * POST /api/v1/auth/register
+ * POST /api/v1/auth/request-otp
  */
-async function register(req, res, next) {
+async function requestRegistrationOtp(req, res, next) {
   try {
-    const { username, contact, password, displayName, dateOfBirth } = req.body;
+    const { username, contact } = req.body;
 
     let email = null;
     let phone = null;
@@ -64,9 +65,82 @@ async function register(req, res, next) {
       return ApiResponse.conflict(res, 'An account with this email, mobile number, or username already exists.', 'DUPLICATE_USER');
     }
 
+    // Generate 6-digit OTP
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    const contactStr = email || phone;
+
+    // Remove any existing OTP for this contact
+    await Otp.deleteMany({ contact: contactStr });
+
+    // Save new OTP
+    await Otp.create({ contact: contactStr, otpCode, expiresAt });
+
+    if (email) {
+      await sendEmail({
+        email: contactStr,
+        subject: 'Your AI Social Confirmation Code',
+        message: `Your confirmation code is ${otpCode}.\n\nIt will expire in 10 minutes.`,
+      });
+      logger.info(`OTP sent via Email to ${contactStr}`);
+    } else {
+      // Mock SMS
+      logger.info(`[MOCK SMS] OTP for ${contactStr} is ${otpCode}`);
+      console.log(`\n========================================\n[MOCK SMS] OTP for ${contactStr} is ${otpCode}\n========================================\n`);
+    }
+
+    return ApiResponse.success(res, null, 'OTP sent successfully');
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * POST /api/v1/auth/register
+ */
+async function register(req, res, next) {
+  try {
+    const { username, contact, password, displayName, dateOfBirth, otp } = req.body;
+
+    if (!otp) {
+      return ApiResponse.badRequest(res, 'Confirmation code is required');
+    }
+
+    let email = null;
+    let phone = null;
+
+    if (isEmail(contact)) {
+      email = contact.toLowerCase();
+    } else {
+      phone = normalizePhone(contact);
+      if (!phone) {
+        return ApiResponse.badRequest(res, 'Invalid mobile number format');
+      }
+    }
+
+    const contactStr = email || phone;
+
+    // Verify OTP
+    const validOtp = await Otp.findOne({ contact: contactStr, otpCode: otp });
+    if (!validOtp) {
+      return ApiResponse.badRequest(res, 'Invalid or expired confirmation code');
+    }
+
+    // Check existing again just in case
+    const queryConds = [{ username }];
+    if (email) queryConds.push({ email });
+    if (phone) queryConds.push({ phone });
+
+    const existingUser = await User.findOne({ $or: queryConds });
+
+    if (existingUser) {
+      return ApiResponse.conflict(res, 'An account with this email, mobile number, or username already exists.', 'DUPLICATE_USER');
+    }
+
     const userData = {
       username,
-      passwordHash: password, // hashed by pre-save hook
+      passwordHash: password,
       displayName: displayName || username,
       dateOfBirth,
     };
@@ -74,6 +148,9 @@ async function register(req, res, next) {
     if (phone) userData.phone = phone;
 
     const user = await User.create(userData);
+    
+    // Delete OTP
+    await Otp.deleteOne({ _id: validOtp._id });
 
     const token = generateToken(user._id);
 
@@ -242,4 +319,4 @@ async function resetPassword(req, res, next) {
   }
 }
 
-module.exports = { register, login, getMe, forgotPassword, resetPassword };
+module.exports = { requestRegistrationOtp, register, login, getMe, forgotPassword, resetPassword };

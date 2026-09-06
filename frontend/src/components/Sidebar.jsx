@@ -1,5 +1,5 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Search, Compass, Bell, User, Settings, Shield, LogOut, PlusSquare, Menu, X, MessageCircle, MoreHorizontal, Bookmark, AlertCircle, PlaySquare, Heart, Plus } from 'lucide-react';
+import { Home, Search, Compass, Bell, User, Settings, Shield, LogOut, PlusSquare, Menu, X, MessageCircle, MoreHorizontal, Bookmark, AlertCircle, Heart, Plus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { useToast } from '../context/ToastContext';
@@ -8,6 +8,7 @@ import { notificationAPI } from '../services/api';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
 const BASE_URL = API_URL.replace('/api/v1', '');
+import { getMediaUrl } from '../utils/mediaUtils';
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
@@ -68,7 +69,6 @@ export default function Sidebar() {
 
   const links = [
     { to: '/feed', icon: Home, label: 'Home' },
-    { to: '/explore?tab=reels', icon: PlaySquare, label: 'Reels' },
     { to: '/explore', icon: Compass, label: 'Explore' },
     { to: '/search', icon: Search, label: 'Search' },
     { to: '/messages', icon: MessageCircle, label: 'Messages' },
@@ -112,7 +112,7 @@ export default function Sidebar() {
             >
               {isAvatar ? (
                 user?.avatar ? (
-                  <img src={`${BASE_URL}${user.avatar}`} alt="Profile" style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }} />
+                  <img src={getMediaUrl(user.avatar, BASE_URL)} alt="Profile" style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }} />
                 ) : (
                   <div style={{ width: 24, height: 24, borderRadius: '50%', backgroundColor: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 'bold' }}>
                     {initial}

@@ -1,5 +1,5 @@
 const express = require('express');
-const { getProfile, updateProfile, getFollowers, getFollowing, searchUsers, uploadAvatar, checkUsernameAvailability } = require('../controllers/userController');
+const { getProfile, updateProfile, getFollowers, getFollowing, searchUsers, uploadAvatar, checkUsernameAvailability, getSuggestedUsers } = require('../controllers/userController');
 const { followUser, unfollowUser, getFollowRequests, acceptFollowRequest, rejectFollowRequest } = require('../controllers/interactionController');
 const auth = require('../middleware/auth');
 const { optionalAuth } = require('../middleware/auth');
@@ -10,6 +10,7 @@ const { profileUpdateValidation } = require('../validators');
 const router = express.Router();
 
 router.get('/search', auth, searchUsers);
+router.get('/suggested', auth, getSuggestedUsers);
 router.get('/check-username', optionalAuth, checkUsernameAvailability); // Public endpoint for registration, auth not required but handles req.user if passed
 router.get('/follow-requests', auth, getFollowRequests);
 router.get('/:username', optionalAuth, getProfile);

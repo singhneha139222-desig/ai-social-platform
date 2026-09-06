@@ -261,4 +261,74 @@ async function rejectFollowRequest(req, res, next) {
   }
 }
 
-module.exports = { likePost, unlikePost, followUser, unfollowUser, getFollowRequests, acceptFollowRequest, rejectFollowRequest };
+/**
+ * POST /api/v1/posts/:id/save
+ */
+async function savePost(req, res, next) {
+  try {
+    const postId = req.params.id;
+    const userId = req.user._id;
+
+    const post = await Post.findById(postId);
+    if (!post || !PUBLIC_STATUSES.includes(post.moderationStatus)) {
+      return ApiResponse.notFound(res, 'Post not found');
+    }
+
+    // Check if already saved
+    const existing = await Interaction.findOne({
+      user: userId,
+      post: postId,
+      type: 'save',
+    });
+
+    if (existing) {
+      return ApiResponse.conflict(res, 'Already saved this post', 'ALREADY_SAVED');
+    }
+
+    await Interaction.create({
+      user: userId,
+      post: postId,
+      type: 'save',
+    });
+
+    await Post.findByIdAndUpdate(postId, { $inc: { savesCount: 1 } });
+    feedCache.invalidateUser(userId);
+
+    return ApiResponse.success(res, { saved: true }, 'Post saved');
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * DELETE /api/v1/posts/:id/save
+ */
+async function unsavePost(req, res, next) {
+  try {
+    const postId = req.params.id;
+    const userId = req.user._id;
+
+    const existing = await Interaction.findOneAndDelete({
+      user: userId,
+      post: postId,
+      type: 'save',
+    });
+
+    if (!existing) {
+      return ApiResponse.notFound(res, 'Save not found');
+    }
+
+    await Post.findByIdAndUpdate(postId, { $inc: { savesCount: -1 } });
+    feedCache.invalidateUser(userId);
+
+    return ApiResponse.success(res, { saved: false }, 'Post unsaved');
+  } catch (error) {
+    next(error);
+  }
+}
+
+module.exports = { likePost, unlikePost, followUser, unfollowUser, getFollowRequests, acceptFollowRequest,
+  rejectFollowRequest,
+  savePost,
+  unsavePost
+};

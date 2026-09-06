@@ -19,9 +19,22 @@ const messageSchema = new mongoose.Schema(
     },
     text: {
       type: String,
-      required: true,
+      required: function() { return !this.stickerUrl && !this.mediaUrl; },
       trim: true,
       maxlength: 1000,
+    },
+    mediaUrl: {
+      type: String,
+      default: null,
+    },
+    mediaType: {
+      type: String,
+      enum: ['image', 'audio', 'video', null],
+      default: null,
+    },
+    stickerUrl: {
+      type: String,
+      default: null,
     },
     status: {
       type: String,

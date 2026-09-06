@@ -44,6 +44,7 @@ export default function App() {
               <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                 <Route path="/feed" element={<FeedPage />} />
                 <Route path="/explore" element={<ExplorePage />} />
+                <Route path="/search" element={<ExplorePage />} />
                 <Route path="/create-post" element={<CreatePostPage />} />
                 <Route path="/post/:id" element={<PostPage />} />
                 <Route path="/profile/:username" element={<ProfilePage />} />

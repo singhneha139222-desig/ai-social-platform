@@ -10,6 +10,7 @@ import BotDetectionPanel from '../components/BotDetectionPanel';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
 const BASE_URL = API_URL.replace('/api/v1', '');
+import { getMediaUrl } from '../utils/mediaUtils';
 
 export default function ProfilePage() {
   const { username } = useParams();
@@ -125,7 +126,7 @@ export default function ProfilePage() {
     <div className="feed-container">
       <div className="profile-header">
         {profile.avatar ? (
-          <img src={`${BASE_URL}${profile.avatar}`} alt="Avatar" className="avatar-img avatar--xl" />
+          <img src={getMediaUrl(profile.avatar, BASE_URL)} alt="Avatar" className="avatar-img avatar--xl" />
         ) : (
           <div className="avatar avatar--xl">{initial}</div>
         )}
