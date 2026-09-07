@@ -42,9 +42,17 @@ async function getProfile(req, res, next) {
       }
     }
 
-    const Post = require('../models/Post'); // Import Post model inside or at top level. Let's do it at top level if possible, but doing it here is safer if it's not required at top level. Wait, I'll require it at the top level or inside the function. Let's require it inside to avoid circular dependencies just in case.
+    const Post = require('../models/Post');
+    const { PUBLIC_STATUSES } = require('../utils/constants');
 
-    const postsCount = await require('../models/Post').countDocuments({ author: user._id });
+    const filter = { author: user._id };
+    const isSelf = req.user && req.user._id.toString() === user._id.toString();
+    const isAdmin = req.user && req.user.role === 'admin';
+    if (!isSelf && !isAdmin) {
+      filter.moderationStatus = { $in: PUBLIC_STATUSES };
+    }
+
+    const postsCount = await Post.countDocuments(filter);
 
     const responseUser = {
       ...user.toJSON(),

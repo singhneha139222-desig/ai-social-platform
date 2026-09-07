@@ -143,3 +143,9 @@
   height: 2px;
   background-color: var(--accent-primary);
 }
+
+.profile-container {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+}
