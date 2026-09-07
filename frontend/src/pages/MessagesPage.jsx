@@ -374,10 +374,10 @@ export default function MessagesPage() {
     <div className="messages-container" style={{ display: 'flex', height: 'calc(100vh - 60px)', background: 'var(--bg-primary)', overflow: 'hidden' }}>
       
       {/* Sidebar: Conversations List */}
-      <div className={`messages-sidebar ${activeConversation ? 'hidden-mobile' : ''}`} style={{ width: '350px', borderRight: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column' }}>
+      <div className={`messages-sidebar ${activeConversation ? 'hidden-mobile' : ''}`} style={{ width: '350px', borderRight: '1px solid var(--border-default)', display: 'flex', flexDirection: 'column' }}>
         
         {/* Header matching Instagram */}
-        <div style={{ padding: '20px', borderBottom: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+        <div style={{ padding: '20px', borderBottom: '1px solid var(--border-default)', display: 'flex', flexDirection: 'column', gap: '15px' }}>
           {viewMode === 'inbox' ? (
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -426,7 +426,7 @@ export default function MessagesPage() {
         </div>
 
         {viewMode === 'requests' && !searchQuery && (
-          <div style={{ padding: '15px 20px', fontSize: '0.85rem', color: 'var(--text-muted)', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>
+          <div style={{ padding: '15px 20px', fontSize: '0.85rem', color: 'var(--text-muted)', borderBottom: '1px solid var(--border-default)', textAlign: 'center' }}>
             Open a chat to get more info about who's messaging you. They won't know you've seen it until you accept.
           </div>
         )}
@@ -533,7 +533,7 @@ export default function MessagesPage() {
         </div>
         
         {viewMode === 'requests' && requestConversations.length > 0 && (
-          <div style={{ padding: '15px', borderTop: '1px solid var(--border-color)', textAlign: 'center' }}>
+          <div style={{ padding: '15px', borderTop: '1px solid var(--border-default)', textAlign: 'center' }}>
             <button 
               onClick={() => {}} 
               style={{ background: 'none', border: 'none', color: '#e74c3c', cursor: 'pointer' }}
@@ -549,7 +549,7 @@ export default function MessagesPage() {
         {activeConversation ? (
           <>
             {/* Header */}
-            <div style={{ padding: '15px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center' }}>
+            <div style={{ padding: '15px 20px', borderBottom: '1px solid var(--border-default)', display: 'flex', alignItems: 'center' }}>
               <button className="mobile-only" style={{ background: 'none', border: 'none', marginRight: '15px', color: 'var(--text-primary)' }} onClick={() => setActiveConversation(null)}>
                 <ArrowLeft size={24} />
               </button>
@@ -644,14 +644,14 @@ export default function MessagesPage() {
 
             {/* Composer or Action Banner */}
             {activeConversation.status === 'pending' && activeConversation.initiator !== user.id ? (
-              <div style={{ padding: '20px', borderTop: '1px solid var(--border-color)', background: 'var(--bg-primary)', textAlign: 'center' }}>
+              <div style={{ padding: '20px', borderTop: '1px solid var(--border-default)', background: 'var(--bg-primary)', textAlign: 'center' }}>
                 <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '15px' }}>
                   Do you want to let {activeConversation.otherParticipant.username} message you? They won't know you've seen their messages until you accept.
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '20px' }}>
                   <button 
                     onClick={declineRequest}
-                    style={{ flex: 1, maxWidth: '200px', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontWeight: 'bold', cursor: 'pointer' }}
+                    style={{ flex: 1, maxWidth: '200px', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-default)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontWeight: 'bold', cursor: 'pointer' }}
                   >
                     Delete
                   </button>
@@ -664,7 +664,7 @@ export default function MessagesPage() {
                 </div>
               </div>
             ) : (
-              <div style={{ padding: '15px 20px', borderTop: '1px solid var(--border-color)', background: 'var(--bg-primary)' }}>
+              <div style={{ padding: '15px 20px', borderTop: '1px solid var(--border-default)', background: 'var(--bg-primary)' }}>
                 <form onSubmit={sendMessage} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <div style={{ 
                       flex: 1, 
@@ -672,7 +672,7 @@ export default function MessagesPage() {
                       alignItems: 'center', 
                       background: 'var(--bg-secondary)', 
                       borderRadius: '24px', 
-                      border: '1px solid var(--border-color)', 
+                      border: '1px solid var(--border-default)', 
                       padding: '0 12px' 
                     }}>
                     <StickerPicker 
