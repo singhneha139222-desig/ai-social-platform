@@ -27,18 +27,20 @@ export default function CreatePostPage() {
         setResult({
           status: data.status,
           decision: data.decision,
-          message: getModerationMessage(data.decision, data.status)
+          message: getModerationMessage(data.decision, data.status, data.toxicity)
         });
         setLoading(false);
         setPendingPostId(null);
         
+        const scoreStr = data.toxicity !== undefined ? ` (Toxicity: ${(data.toxicity * 100).toFixed(1)}%)` : '';
+
         if (data.decision === 'publish') {
-          toast.success('Post published successfully');
+          toast.success(`Post published successfully${scoreStr}`);
           setTimeout(() => navigate('/feed'), 1500);
         } else if (data.decision === 'flag') {
-          toast.warning('Your post is pending review.');
+          toast.warning(`Your post is pending review.${scoreStr}`);
         } else if (data.decision === 'reject') {
-          toast.error('Your post was rejected because it violated content guidelines.');
+          toast.error(`Your post was rejected because it violated content guidelines.${scoreStr}`);
         } else if (data.decision === 'failed') {
           toast.info(data.message || 'Content moderation is temporarily unavailable. Your post is pending review.');
         }
@@ -49,10 +51,11 @@ export default function CreatePostPage() {
     return () => socket.off('moderation:update', handleModerationUpdate);
   }, [socket, pendingPostId, navigate, toast]);
 
-  const getModerationMessage = (decision, status) => {
-    if (decision === 'publish') return 'Your post has been published.';
-    if (decision === 'flag') return 'Your post is pending review.';
-    if (decision === 'reject') return 'Your post could not be published because it did not meet our content guidelines.';
+  const getModerationMessage = (decision, status, toxicity) => {
+    const scoreStr = toxicity !== undefined ? ` (Toxicity: ${(toxicity * 100).toFixed(1)}%)` : '';
+    if (decision === 'publish') return `Your post has been published.${scoreStr}`;
+    if (decision === 'flag') return `Your post is pending review.${scoreStr}`;
+    if (decision === 'reject') return `Your post could not be published because it did not meet our content guidelines.${scoreStr}`;
     if (decision === 'failed') return 'Content moderation is temporarily unavailable. Your post is pending review.';
     if (status === 'pending') return 'Checking content with AI...';
     return '';

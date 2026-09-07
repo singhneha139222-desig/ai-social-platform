@@ -131,7 +131,7 @@ export default function PostCard({ post, onDelete, onLikeToggle }) {
       removed: 'rejected', rejected_by_admin: 'rejected',
     };
     const label = {
-      pending: 'Pending Review', flagged: 'Under Review', rejected: 'Rejected',
+      pending: 'Pending', flagged: 'Pending', rejected: 'Rejected',
       removed: 'Removed', rejected_by_admin: 'Rejected by Admin',
     };
     // Use badge styling from posts.css

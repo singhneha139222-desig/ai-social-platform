@@ -22,7 +22,7 @@ export default function FeedPage() {
     setLoading(true);
     try {
       const res = await feedAPI.getFeed(p);
-      const newPosts = res.data.data.posts || [];
+      const newPosts = (res.data.data.posts || []).filter(p => p.moderationStatus !== 'rejected');
       if (p === 1) {
         setPosts(newPosts);
       } else {

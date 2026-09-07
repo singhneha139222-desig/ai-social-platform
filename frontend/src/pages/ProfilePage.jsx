@@ -42,7 +42,7 @@ export default function ProfilePage() {
         // Let's fetch posts using the user ID from profile
         const userId = profileRes.data.data.user._id;
         const postsResult = await postAPI.getUserPosts(userId).catch(() => ({ data: { data: { posts: [] } } }));
-        setPosts(postsResult.data.data.posts || []);
+        setPosts((postsResult.data.data.posts || []).filter(p => p.moderationStatus !== 'rejected'));
       } catch (err) {
         toast.error('Failed to load profile');
       }
