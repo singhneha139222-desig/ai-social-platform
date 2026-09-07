@@ -123,8 +123,8 @@ export default function ProfilePage() {
   const initial = profile.displayName?.[0] || profile.username?.[0] || '?';
 
   return (
-    <div className="feed-container">
-      <div className="profile-header">
+    <div className="feed-container" style={{ padding: '20px' }}>
+      <div className="profile-header card">
         {profile.avatar ? (
           <img src={getMediaUrl(profile.avatar, BASE_URL)} alt="Avatar" className="avatar-img avatar--xl" />
         ) : (
@@ -132,8 +132,22 @@ export default function ProfilePage() {
         )}
         
         <div className="profile-info">
-          <h2 className="profile-name">{profile.displayName || profile.username}</h2>
-          <p className="profile-handle">@{profile.username}</p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+            <div>
+              <h2 className="profile-name">{profile.displayName || profile.username}</h2>
+              <p className="profile-handle">@{profile.username}</p>
+            </div>
+            {!isOwnProfile && (
+              <div className="profile-actions">
+                <button
+                  className={`btn ${following || requested ? 'btn--secondary' : 'btn--primary'}`}
+                  onClick={handleFollow}
+                >
+                  {following ? <><UserMinus size={16} /> Unfollow</> : requested ? <><Clock size={16} /> Requested</> : <><UserPlus size={16} /> Follow</>}
+                </button>
+              </div>
+            )}
+          </div>
           
           <div className="profile-stats">
             <div className="stat-item">
@@ -150,18 +164,7 @@ export default function ProfilePage() {
             </div>
           </div>
           
-          {profile.bio && <p style={{ marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>{profile.bio}</p>}
-          
-          {!isOwnProfile && (
-            <div className="profile-actions">
-              <button
-                className={`btn ${following || requested ? 'btn--secondary' : 'btn--primary'}`}
-                onClick={handleFollow}
-              >
-                {following ? <><UserMinus size={16} /> Unfollow</> : requested ? <><Clock size={16} /> Requested</> : <><UserPlus size={16} /> Follow</>}
-              </button>
-            </div>
-          )}
+          {profile.bio && <p style={{ marginTop: '1rem', color: 'var(--text-secondary)' }}>{profile.bio}</p>}
         </div>
       </div>
 
@@ -179,8 +182,9 @@ export default function ProfilePage() {
         </div>
       ) : (
         <>
-          <div className="page-header">
-            <h2>Posts</h2>
+          <div className="profile-tabs">
+            <div className="profile-tab active">Posts</div>
+            <div className="profile-tab">Media</div>
           </div>
           
           <div className="feed-list">

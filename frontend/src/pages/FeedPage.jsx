@@ -5,6 +5,7 @@ import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { Inbox, UserPlus } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import RightRail from '../components/RightRail';
 import { getMediaUrl } from '../utils/mediaUtils';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
 const BASE_URL = API_URL.replace('/api/v1', '');
@@ -88,8 +89,28 @@ export default function FeedPage() {
   }
 
   return (
-    <div className="feed-page-layout" style={{ display: 'flex', gap: '32px', maxWidth: '1000px', margin: '0 auto', padding: '20px' }}>
-      <div className="feed-main" style={{ flex: 1, maxWidth: '630px' }}>
+    <div className="feed-page-layout">
+      <div className="feed-main">
+        {/* Feed Header / Composer Entry */}
+        <div className="feed-header card" style={{ padding: '1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', cursor: 'text' }} onClick={() => window.location.href = '/create-post'}>
+          {user?.avatar ? (
+            <img src={getMediaUrl(user.avatar, BASE_URL)} alt="Profile" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
+          ) : (
+            <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+              {user?.displayName?.[0] || '?'}
+            </div>
+          )}
+          <div style={{ flex: 1, padding: '0.75rem 1rem', background: 'var(--bg-input)', borderRadius: 'var(--radius-full)', color: 'var(--text-muted)' }}>
+            What's on your mind?
+          </div>
+        </div>
+
+        {/* Feed Filter Tabs (Using existing routes as conceptual tabs) */}
+        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.5rem' }}>
+          <div style={{ fontWeight: 600, color: 'var(--accent-primary)', borderBottom: '2px solid var(--accent-primary)', paddingBottom: '0.5rem', cursor: 'pointer' }}>My Feed</div>
+          <Link to="/explore" style={{ fontWeight: 500, color: 'var(--text-secondary)', paddingBottom: '0.5rem', textDecoration: 'none' }}>Discover</Link>
+        </div>
+
         {posts.length === 0 ? (
           <div className="empty-state">
             <div className="empty-state__icon"><Inbox size={48} /></div>
@@ -115,6 +136,9 @@ export default function FeedPage() {
         )}
       </div>
 
+      <div className="right-rail-container desktop-only">
+        <RightRail />
+      </div>
     </div>
   );
 }

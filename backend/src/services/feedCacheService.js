@@ -53,6 +53,6 @@ class FeedCache {
   }
 }
 
-const feedCache = new FeedCache(500, 30000); // Max 500 users, 30s TTL
+const feedCache = new FeedCache(500, 5000); // Max 500 users, 5s TTL
 
 module.exports = feedCache;

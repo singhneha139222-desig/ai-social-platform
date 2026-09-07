@@ -1,0 +1,53 @@
+[
+  { "id": "A1", "category": "A", "text": "I had a wonderful time at the park today." },
+  { "id": "A2", "category": "A", "text": "Can someone help me debug this React component?" },
+  { "id": "A3", "category": "A", "text": "The quick brown fox jumps over the lazy dog." },
+  { "id": "A4", "category": "A", "text": "I think we should reconsider our approach to this problem." },
+  
+  { "id": "B1", "category": "B", "text": "This is absolutely fantastic! Great job everyone." },
+  { "id": "B2", "category": "B", "text": "I love the new design, it looks so clean and modern." },
+  { "id": "B3", "category": "B", "text": "You are a brilliant developer and an amazing friend." },
+  
+  { "id": "C1", "category": "C", "text": "I don't really like this movie, it felt very boring and slow." },
+  { "id": "C2", "category": "C", "text": "Your code could use some refactoring, it's a bit messy." },
+  { "id": "C3", "category": "C", "text": "The service at that restaurant was quite poor last night." },
+  
+  { "id": "D1", "category": "D", "text": "You are acting like a fool right now." },
+  { "id": "D2", "category": "D", "text": "That's a really stupid idea, why would you even suggest that?" },
+  { "id": "D3", "category": "D", "text": "You're an idiot if you think this will actually work." },
+  
+  { "id": "E1", "category": "E", "text": "You are a piece of trash and no one likes you." },
+  { "id": "E2", "category": "E", "text": "Shut up you absolute moron, you know nothing." },
+  { "id": "E3", "category": "E", "text": "Go to hell, you pathetic loser." },
+  
+  { "id": "F1", "category": "F", "text": "I'm going to find where you live and make you regret this." },
+  { "id": "F2", "category": "F", "text": "You should just kill yourself, nobody wants you here." },
+  { "id": "F3", "category": "F", "text": "I hope you die in a fire." },
+  
+  { "id": "G1", "category": "G", "text": "You f***ing piece of s**t, die." },
+  { "id": "G2", "category": "G", "text": "I will murder your entire family you b***h." },
+  
+  { "id": "H1", "category": "H", "text": "I am going to beat you up after school." },
+  { "id": "H2", "category": "H", "text": "I have a weapon and I'm coming for you." },
+  
+  { "id": "I1", "category": "I", "text": "F*** you motherf***er, suck my d***." },
+  { "id": "I2", "category": "I", "text": "This s**t is so f***ed up." },
+  
+  { "id": "J1", "category": "J", "text": "All minorities are criminals and should be deported." },
+  { "id": "J2", "category": "J", "text": "I hate women, they are so inferior to us." },
+  { "id": "J3", "category": "J", "text": "That religion is a disease and its followers are scum." },
+  
+  { "id": "K1", "category": "K", "text": "I'm going to kill this exam tomorrow!" },
+  { "id": "K2", "category": "K", "text": "That performance was sick, absolutely crazy." },
+  { "id": "K3", "category": "K", "text": "We need to execute this process carefully." },
+  { "id": "K4", "category": "K", "text": "I'll shoot you an email later today." },
+
+  { "id": "L1", "category": "L", "text": "Aaj ka din bahut accha tha." },
+  { "id": "L2", "category": "L", "text": "Tu pagal hai kya? Bakwaas mat kar." },
+  { "id": "L3", "category": "L", "text": "Kutte kamine main tera khoon pee jaunga." },
+  { "id": "L4", "category": "L", "text": "Mujhe tumhara kaam bilkul pasand nahi aaya." },
+  
+  { "id": "M1", "category": "M", "text": "I hate the way you laugh." },
+  { "id": "M2", "category": "M", "text": "You are really annoying me right now." },
+  { "id": "M3", "category": "M", "text": "Stop being such a jerk." }
+]

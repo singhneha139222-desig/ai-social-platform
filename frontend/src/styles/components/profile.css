@@ -4,15 +4,16 @@
 
 .profile-header {
   background: var(--bg-card);
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   padding: 2rem;
-  margin-bottom: 2rem;
+  margin-bottom: 0; /* Changed from 2rem since tabs are below */
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 1rem;
+  gap: 1.5rem;
 }
 
 @media (min-width: 640px) {
@@ -95,7 +96,7 @@
   text-align: center;
   padding: 3rem 1rem;
   background: var(--bg-card);
-  border: 1px dashed var(--border-default);
+  border: 1px dashed var(--border-hover);
   border-radius: var(--radius-lg);
   color: var(--text-secondary);
 }
@@ -103,4 +104,42 @@
 .empty-state h3 {
   margin-bottom: 0.5rem;
   color: var(--text-primary);
+}
+
+/* ----------------------------------
+   Profile Tabs
+   ---------------------------------- */
+.profile-tabs {
+  display: flex;
+  gap: 2rem;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 1.5rem;
+  padding: 0 1rem;
+}
+
+.profile-tab {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+  padding: 1rem 0;
+  cursor: pointer;
+  position: relative;
+}
+
+.profile-tab:hover {
+  color: var(--text-primary);
+}
+
+.profile-tab.active {
+  color: var(--accent-primary);
+}
+
+.profile-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: var(--accent-primary);
 }
