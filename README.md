@@ -9,9 +9,7 @@
 ![MongoDB](https://img.shields.io/badge/MongoDB-7.0-green?logo=mongodb)
 ![Docker](https://img.shields.io/badge/Docker-Enabled-blue?logo=docker)
 
-A full-stack, real-time social media platform integrating advanced Natural Language Processing (NLP), Graph Neural Networks (GNN), and Explainable AI (XAI) to demonstrate intelligent content safety, bot detection, and user engagement. 
-
-Built as an academic and engineering showcase of integrating complex machine learning pipelines into a scalable web application.
+A full-stack social media platform with AI-powered content moderation, real-time multimedia chat, and personalized recommendations. Built as a Final Year Project demonstrating the practical application of NLP/ML models in content safety and user engagement.
 
 ## Table of Contents
 - [Overview & Problem Statement](#overview--problem-statement)
@@ -64,6 +62,31 @@ This project explores an integrated solution by combining a real-time web applic
 ---
 
 ## System Architecture
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│                     React Frontend (Vite)                     │
+│                  Hosted on Vercel (Port 80/443)               │
+│        (Features: React Router, Socket.io-client, Axios)      │
+├──────────────────────────────────────────────────────────────┤
+│               EC2 Cloud Deployment (Dockerized)               │
+│                                                              │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │               Node.js Express Backend                  │  │
+│  │                (API Gateway) Port 5000                 │  │
+│  │ (Features: JWT, SMTP, Socket.io, Cloudinary, Multer)   │  │
+│  └───────────────┬────────────────────────┬───────────────┘  │
+│                  │                        │                  │
+│  ┌───────────────┴──────────┐  ┌──────────┴───────────────┐  │
+│  │   MongoDB (Port 27017)   │  │ Python Flask AI Service  │  │
+│  │ (Interactions, Messages, │  │       (Port 5001)        │  │
+│  │  Users, Posts, Comments) │  │  (Toxicity, Sentiment,   │  │
+│  └──────────────────────────┘  │      Bot Detection)      │  │
+│                                └──────────────────────────┘  │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### Component Flow
 
 ```mermaid
 flowchart LR
