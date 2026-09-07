@@ -66,7 +66,7 @@ async function getFeed(req, res, next) {
         seen.add(id);
         allPosts.push({
           ...post,
-          recommendationScore: (post.recommendationScore || 0.5) + 0.2,
+          recommendationScore: (post.recommendationScore || 0.5) + 0.2 + (Math.random() * 0.3), // Jitter
           source: 'following',
         });
       }
@@ -77,7 +77,11 @@ async function getFeed(req, res, next) {
       const id = post._id.toString();
       if (!seen.has(id)) {
         seen.add(id);
-        allPosts.push({ ...post, source: 'recommended' });
+        allPosts.push({ 
+          ...post, 
+          recommendationScore: (post.recommendationScore || 0.5) + (Math.random() * 0.3), // Jitter
+          source: 'recommended' 
+        });
       }
     }
 
@@ -94,7 +98,8 @@ async function getFeed(req, res, next) {
         .lean();
 
       for (const post of fillerPosts) {
-        allPosts.push({ ...post, recommendationScore: 0.1, source: 'popular' });
+        // Give filler posts a competitive random score so they mix in
+        allPosts.push({ ...post, recommendationScore: 0.3 + (Math.random() * 0.6), source: 'popular' });
       }
     }
 

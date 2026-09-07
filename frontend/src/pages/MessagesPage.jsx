@@ -371,10 +371,10 @@ export default function MessagesPage() {
   const displayedConversations = viewMode === 'inbox' ? inboxConversations : requestConversations;
 
   return (
-    <div className="messages-container" style={{ display: 'flex', height: 'calc(100vh - 60px)', background: 'var(--bg-primary)', overflow: 'hidden' }}>
+    <div className="messages-container" style={{ display: 'flex', flex: 1, background: 'var(--bg-primary)', overflow: 'hidden' }}>
       
       {/* Sidebar: Conversations List */}
-      <div className={`messages-sidebar ${activeConversation ? 'hidden-mobile' : ''}`} style={{ width: '350px', borderRight: '1px solid var(--border-default)', display: 'flex', flexDirection: 'column' }}>
+      <div className={`messages-sidebar ${activeConversation ? 'hidden-mobile' : ''}`} style={{ width: '380px', flexShrink: 0, borderRight: '1px solid var(--border-default)', display: 'flex', flexDirection: 'column' }}>
         
         {/* Header matching Instagram */}
         <div style={{ padding: '20px', borderBottom: '1px solid var(--border-default)', display: 'flex', flexDirection: 'column', gap: '15px' }}>

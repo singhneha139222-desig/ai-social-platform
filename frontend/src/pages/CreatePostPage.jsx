@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import api, { postAPI } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import { useSocket } from '../context/SocketContext';
-import { Send, AlertTriangle, CheckCircle, Clock, Image as ImageIcon, X } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { AlertTriangle, CheckCircle, Clock, Image as ImageIcon, X } from 'lucide-react';
 import StickerPicker from '../components/StickerPicker';
 
 export default function CreatePostPage() {
@@ -17,6 +18,7 @@ export default function CreatePostPage() {
   const toast = useToast();
   const navigate = useNavigate();
   const { socket } = useSocket();
+  const { user } = useAuth();
   const MAX_LENGTH = 2000;
 
   useEffect(() => {
@@ -116,23 +118,32 @@ export default function CreatePostPage() {
   };
 
   return (
-    <div className="feed-container" style={{ maxWidth: '600px', margin: '0 auto', paddingTop: '20px' }}>
-      <div className="post-composer-card" style={{ backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+    <div className="create-post-container" style={{ width: '100%', padding: '2rem 1rem', display: 'flex', justifyContent: 'center', flexDirection: 'column', alignItems: 'center' }}>
+      <div className="create-post-workspace" style={{ 
+        width: '100%', 
+        maxWidth: step === 1 ? '700px' : '950px', 
+        backgroundColor: 'var(--bg-primary)', 
+        borderRadius: 'var(--radius-lg)', 
+        overflow: 'hidden', 
+        border: '1px solid var(--border-default)',
+        boxShadow: 'var(--shadow-lg)',
+        transition: 'max-width 0.3s ease'
+      }}>
         
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', borderBottom: '1px solid var(--border-default)' }}>
           {step === 1 ? (
             <div style={{ width: '24px' }}></div>
           ) : (
-            <button onClick={() => setStep(1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)' }}>
+            <button onClick={() => setStep(1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)', display: 'flex', alignItems: 'center' }}>
               <X size={24} />
             </button>
           )}
-          <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '600' }}>Create new post</h3>
+          <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '600', color: 'var(--text-primary)' }}>Create new post</h3>
           {step === 1 ? (
             <button 
               onClick={() => setStep(2)} 
-              style={{ background: 'none', border: 'none', color: '#0095f6', fontWeight: 'bold', cursor: 'pointer' }}
+              style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontWeight: '600', cursor: (!mediaFile && !content.trim()) ? 'not-allowed' : 'pointer', opacity: (!mediaFile && !content.trim()) ? 0.5 : 1, fontSize: '0.95rem' }}
               disabled={!mediaFile && !content.trim()}
             >
               Next
@@ -141,7 +152,7 @@ export default function CreatePostPage() {
             <button 
               onClick={handleSubmit} 
               disabled={loading || (!content.trim() && !mediaFile)}
-              style={{ background: 'none', border: 'none', color: '#0095f6', fontWeight: 'bold', cursor: loading ? 'not-allowed' : 'pointer' }}
+              style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontWeight: '600', cursor: loading || (!content.trim() && !mediaFile) ? 'not-allowed' : 'pointer', opacity: loading || (!content.trim() && !mediaFile) ? 0.5 : 1, fontSize: '0.95rem' }}
             >
               {loading ? 'Sharing...' : 'Share'}
             </button>
@@ -149,29 +160,79 @@ export default function CreatePostPage() {
         </div>
 
         {/* Body */}
-        <div style={{ minHeight: '400px', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ minHeight: '500px', display: 'flex', flexDirection: 'column' }}>
           {step === 1 && (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', position: 'relative' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '40px', position: 'relative', gap: '30px', alignItems: 'center', justifyContent: 'center' }}>
+              
               {!mediaFile ? (
                 <>
-                  <ImageIcon size={64} style={{ color: 'var(--text-muted)', marginBottom: '16px' }} />
-                  <h2 style={{ fontSize: '1.25rem', marginBottom: '24px', fontWeight: '400' }}>Upload photos or videos here</h2>
-                  <button 
-                    className="btn btn--primary" 
+                  <div 
                     onClick={() => fileInputRef.current?.click()}
+                    style={{ 
+                      width: '100%',
+                      maxWidth: '500px',
+                      aspectRatio: '16/9',
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      border: '2px dashed var(--border-default)', 
+                      borderRadius: 'var(--radius-lg)', 
+                      padding: '40px',
+                      cursor: 'pointer',
+                      background: 'var(--bg-secondary)',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--accent-primary)'; e.currentTarget.style.background = 'var(--bg-tertiary)'; }}
+                    onMouseOut={(e) => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.background = 'var(--bg-secondary)'; }}
                   >
-                    Select from computer
-                  </button>
+                    <div style={{ background: 'var(--bg-primary)', padding: '16px', borderRadius: '50%', marginBottom: '16px', boxShadow: 'var(--shadow-sm)' }}>
+                      <ImageIcon size={32} style={{ color: 'var(--text-primary)' }} />
+                    </div>
+                    <h2 style={{ fontSize: '1.25rem', marginBottom: '8px', fontWeight: '600', color: 'var(--text-primary)' }}>Upload photos or videos</h2>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '24px' }}>Drag and drop or click to browse</p>
+                    <button style={{ background: 'var(--accent-primary)', color: 'white', border: 'none', padding: '8px 16px', borderRadius: 'var(--radius-md)', fontWeight: '600', cursor: 'pointer' }}>
+                      Select from computer
+                    </button>
+                  </div>
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', width: '100%', maxWidth: '500px' }}>
+                    <div style={{ flex: 1, height: '1px', background: 'var(--border-default)' }}></div>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>OR</span>
+                    <div style={{ flex: 1, height: '1px', background: 'var(--border-default)' }}></div>
+                  </div>
+
+                  <div style={{ width: '100%', maxWidth: '500px' }}>
+                    <textarea
+                      placeholder="Write a text post instead..."
+                      value={content}
+                      onChange={(e) => { setContent(e.target.value); setResult(null); }}
+                      style={{ width: '100%', padding: '20px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-default)', background: 'var(--bg-primary)', resize: 'none', height: '120px', fontSize: '1rem', outline: 'none', color: 'var(--text-primary)', boxShadow: 'var(--shadow-sm)' }}
+                      onFocus={(e) => e.target.style.borderColor = 'var(--accent-primary)'}
+                      onBlur={(e) => e.target.style.borderColor = 'var(--border-default)'}
+                    />
+                  </div>
                 </>
               ) : (
-                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                <div style={{ width: '100%', height: '500px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--border-default)' }}>
                   {mediaFile.type.startsWith('image/') ? (
-                    <img src={URL.createObjectURL(mediaFile)} alt="Preview" style={{ maxHeight: '400px', maxWidth: '100%', objectFit: 'contain' }} />
+                    <img src={URL.createObjectURL(mediaFile)} alt="Preview" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
                   ) : (
-                    <video src={URL.createObjectURL(mediaFile)} style={{ maxHeight: '400px', maxWidth: '100%', objectFit: 'contain' }} controls />
+                    <video src={URL.createObjectURL(mediaFile)} style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} controls />
                   )}
-                  <div style={{ position: 'absolute', bottom: '16px', right: '16px', background: 'rgba(0,0,0,0.6)', borderRadius: '50%', padding: '8px', cursor: 'pointer' }} onClick={() => fileInputRef.current?.click()}>
-                    <ImageIcon size={20} color="white" />
+                  <div style={{ position: 'absolute', bottom: '16px', right: '16px', display: 'flex', gap: '12px' }}>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setMediaFile(null); }}
+                      style={{ background: 'rgba(0,0,0,0.6)', color: 'white', border: 'none', borderRadius: 'var(--radius-full)', padding: '8px 16px', cursor: 'pointer', fontWeight: '500', fontSize: '0.85rem', backdropFilter: 'blur(4px)' }}
+                    >
+                      Clear
+                    </button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                      style={{ background: 'rgba(0,0,0,0.6)', color: 'white', border: 'none', borderRadius: 'var(--radius-full)', padding: '8px 16px', cursor: 'pointer', fontWeight: '500', fontSize: '0.85rem', backdropFilter: 'blur(4px)' }}
+                    >
+                      Change
+                    </button>
                   </div>
                 </div>
               )}
@@ -205,46 +266,62 @@ export default function CreatePostPage() {
                 accept="image/*,video/*" 
                 style={{ display: 'none' }} 
               />
-              
-              {/* Fallback text input if they just want a text post */}
-              {!mediaFile && (
-                <div style={{ marginTop: '40px', width: '100%' }}>
-                  <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '8px' }}>Or just write something</p>
-                  <textarea
-                    placeholder="What's on your mind?"
-                    value={content}
-                    onChange={(e) => { setContent(e.target.value); setResult(null); }}
-                    style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', resize: 'none', height: '100px' }}
-                  />
-                </div>
-              )}
             </div>
           )}
 
           {step === 2 && (
-            <div style={{ display: 'flex', flex: 1, padding: '16px', gap: '16px', alignItems: 'flex-start' }}>
-              {mediaFile && (
-                <div style={{ width: '100px', height: '100px', flexShrink: 0 }}>
-                  {mediaFile.type.startsWith('image/') ? (
-                    <img src={URL.createObjectURL(mediaFile)} alt="Thumb" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }} />
+            <div className="create-post-step2" style={{ display: 'flex', flex: 1, minHeight: '500px' }}>
+              {/* Left Column (Media Preview) */}
+              <div className="create-post-media-col" style={{ flex: '1 1 60%', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRight: '1px solid var(--border-default)', overflow: 'hidden', position: 'relative' }}>
+                {mediaFile ? (
+                  mediaFile.type.startsWith('image/') ? (
+                    <img src={URL.createObjectURL(mediaFile)} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
-                    <video src={URL.createObjectURL(mediaFile)} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }} />
-                  )}
-                </div>
-              )}
+                    <video src={URL.createObjectURL(mediaFile)} style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#000' }} controls />
+                  )
+                ) : (
+                  <div style={{ width: '100%', height: '100%', padding: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-secondary)' }}>
+                    <div style={{ fontSize: '1.5rem', color: 'var(--text-primary)', textAlign: 'center', wordBreak: 'break-word', whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontWeight: '500', maxWidth: '80%' }}>
+                      {content || 'Your text post preview...'}
+                    </div>
+                  </div>
+                )}
+              </div>
               
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              {/* Right Column (Details) */}
+              <div className="create-post-details-col" style={{ flex: '1 1 40%', display: 'flex', flexDirection: 'column', background: 'var(--bg-primary)' }}>
+                {/* User Info */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px' }}>
+                  <div className="avatar avatar--md">
+                    {user?.displayName?.[0] || user?.username?.[0] || '?'}
+                  </div>
+                  <span style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '0.95rem' }}>{user?.username || 'user'}</span>
+                </div>
+
+                {/* Caption Area */}
                 <textarea
                   placeholder="Write a caption..."
                   value={content}
                   onChange={(e) => { setContent(e.target.value); setResult(null); }}
                   maxLength={MAX_LENGTH}
-                  style={{ width: '100%', border: 'none', background: 'transparent', resize: 'none', outline: 'none', minHeight: '100px', fontSize: '1rem', color: 'var(--text-primary)' }}
+                  style={{ 
+                    flex: 1, 
+                    border: 'none', 
+                    background: 'transparent', 
+                    resize: 'none', 
+                    outline: 'none', 
+                    padding: '0 16px', 
+                    fontSize: '1rem', 
+                    color: 'var(--text-primary)',
+                    fontFamily: 'inherit'
+                  }}
                 />
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '8px' }}>
+                
+                {/* Footer Toolbar */}
+                <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border-default)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <StickerPicker onSelect={(emoji) => setContent(prev => prev + emoji)} />
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    {content.length}/{MAX_LENGTH}
+                    {content.length.toLocaleString()}/{MAX_LENGTH.toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -254,11 +331,31 @@ export default function CreatePostPage() {
       </div>
       
       {result && (
-        <div className={`toast ${resultClass()}`} style={{ marginTop: '20px' }}>
+        <div className={`toast ${resultClass()}`} style={{ marginTop: '20px', alignSelf: 'center', width: '100%', maxWidth: step === 1 ? '700px' : '950px' }}>
           {resultIcon()}
           {result.message}
         </div>
       )}
+
+      <style>{`
+        @media (max-width: 768px) {
+          .create-post-step2 {
+            flex-direction: column !important;
+          }
+          .create-post-media-col {
+            flex: none !important;
+            width: 100% !important;
+            height: 350px !important;
+            border-right: none !important;
+            border-bottom: 1px solid var(--border-default) !important;
+          }
+          .create-post-details-col {
+            flex: none !important;
+            width: 100% !important;
+            height: 350px !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

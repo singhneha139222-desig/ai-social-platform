@@ -160,11 +160,9 @@ export default function PostCard({ post, onDelete, onLikeToggle }) {
         <div className="post-card__meta">
           <div className="post-card__author" onClick={() => navigate(`/profile/${post.author?.username}`)} style={{ cursor: 'pointer' }}>
             {post.author?.displayName || post.author?.username}
-            <span className="post-card__handle">@{post.author?.username}</span>
+            <span className="post-card__time"> • {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}</span>
           </div>
-          <div className="post-card__time">
-            {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
-          </div>
+          <div className="post-card__handle">@{post.author?.username}</div>
         </div>
         
         {moderationBadge()}
@@ -176,32 +174,38 @@ export default function PostCard({ post, onDelete, onLikeToggle }) {
         )}
       </div>
 
+      {post.content && (
+        <div className="post-card__caption">
+          {post.content}
+        </div>
+      )}
+
       {post.media && post.media.url && post.media.type !== 'none' && (
-        <div className="post-card__media" style={{ marginLeft: '-16px', marginRight: '-16px', marginTop: '12px', overflow: 'hidden' }}>
+        <div className="post-card__media-container">
           {post.media.type === 'image' ? (
-            <img src={getMediaUrl(post.media.url, `${API_URL}/media`)} alt="Post media" style={{ width: '100%', maxHeight: '500px', objectFit: 'contain', backgroundColor: '#f0f2f5' }} />
+            <img src={getMediaUrl(post.media.url, `${API_URL}/media`)} alt="Post media" className="post-card__media" />
           ) : (
-            <video src={getMediaUrl(post.media.url, `${API_URL}/media`)} controls style={{ width: '100%', maxHeight: '500px', backgroundColor: '#000' }} />
+            <video src={getMediaUrl(post.media.url, `${API_URL}/media`)} controls className="post-card__media" />
           )}
         </div>
       )}
 
       {post.stickerUrl && (
-        <div className="post-card__media" style={{ marginTop: '12px', borderRadius: '8px', overflow: 'hidden', padding: '10px' }}>
-          <img src={post.stickerUrl} alt="Post sticker" style={{ width: '150px', height: '150px', objectFit: 'contain', backgroundColor: 'transparent' }} />
+        <div className="post-card__media-container" style={{ backgroundColor: 'transparent' }}>
+          <img src={post.stickerUrl} alt="Post sticker" className="post-card__sticker" />
         </div>
       )}
 
-      <div className="post-card__actions" style={{ display: 'flex', alignItems: 'center', marginTop: '8px', marginBottom: '8px' }}>
-        <button className={`action-btn ${liked ? 'active' : ''}`} onClick={handleLike} style={{ padding: '8px', marginLeft: '-8px' }}>
+      <div className="post-card__actions">
+        <button className={`action-btn ${liked ? 'active' : ''}`} onClick={handleLike}>
           <Heart size={24} fill={liked ? 'currentColor' : 'none'} />
         </button>
 
-        <button className="action-btn" onClick={toggleComments} style={{ padding: '8px' }}>
+        <button className="action-btn" onClick={toggleComments}>
           <MessageCircle size={24} />
         </button>
 
-        <button className="action-btn" onClick={handleShare} style={{ padding: '8px' }}>
+        <button className="action-btn" onClick={handleShare}>
           <Send size={24} />
         </button>
         
@@ -209,23 +213,14 @@ export default function PostCard({ post, onDelete, onLikeToggle }) {
 
         <div style={{ flex: 1 }} />
         
-        <button className={`action-btn ${saved ? 'active' : ''}`} onClick={handleSave} style={{ padding: '8px', marginRight: '-8px' }}>
+        <button className={`action-btn ${saved ? 'active' : ''}`} onClick={handleSave}>
           <Bookmark size={24} fill={saved ? 'currentColor' : 'none'} />
         </button>
       </div>
 
-      <div style={{ fontWeight: '600', marginBottom: '8px', fontSize: '0.95rem' }}>
+      <div className="post-card__metrics">
         {likesCount} likes
       </div>
-
-      {post.content && (
-        <div className="post-card__caption" style={{ marginBottom: '8px', fontSize: '0.95rem' }}>
-          <span style={{ fontWeight: '600', marginRight: '6px', cursor: 'pointer' }} onClick={() => navigate(`/profile/${post.author?.username}`)}>
-            {post.author?.username}
-          </span>
-          <span>{post.content}</span>
-        </div>
-      )}
 
       {showComments && (
         <div className="comments-section">

@@ -1,4 +1,4 @@
-import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation, Link } from 'react-router-dom';
 import { Home, Search, Compass, Bell, User, Settings, Shield, LogOut, PlusSquare, Menu, X, MessageCircle, MoreHorizontal, Bookmark, AlertCircle, Heart, Plus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
@@ -97,8 +97,34 @@ export default function Sidebar() {
           <div className="sidebar__logo-icon">AI</div>
           <span className="sidebar__logo-text">AI Social</span>
         </div>
-
-
+        
+        {user && (
+          <div className="sidebar__profile-card">
+            <Link to={`/profile/${user.username}`} className="sidebar__profile-link" onClick={() => setOpen(false)}>
+              {user.avatar ? (
+                <img src={getMediaUrl(user.avatar, BASE_URL)} alt={user.displayName} className="sidebar__profile-avatar" />
+              ) : (
+                <div className="sidebar__profile-avatar-fallback">{initial}</div>
+              )}
+              <div className="sidebar__profile-info">
+                <span className="sidebar__profile-name">{user.displayName || user.username}</span>
+                <span className="sidebar__profile-username">@{user.username}</span>
+              </div>
+            </Link>
+            {user.followersCount !== undefined && (
+              <div className="sidebar__profile-stats">
+                <div className="sidebar__stat">
+                  <span className="sidebar__stat-value">{user.followersCount || 0}</span>
+                  <span className="sidebar__stat-label">Followers</span>
+                </div>
+                <div className="sidebar__stat">
+                  <span className="sidebar__stat-value">{user.followingCount || 0}</span>
+                  <span className="sidebar__stat-label">Following</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         <nav className="sidebar__nav">
           {links.map(({ to, icon: Icon, label, badge, isAvatar }) => (
