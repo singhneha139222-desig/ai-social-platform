@@ -101,7 +101,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="feed-container">
+      <div className="profile-container">
         <div className="profile-header" style={{ opacity: 0.5 }}>
           Loading profile...
         </div>
@@ -111,7 +111,7 @@ export default function ProfilePage() {
 
   if (!profile) {
     return (
-      <div className="feed-container">
+      <div className="profile-container">
         <div className="empty-state">
           <h3>User not found</h3>
           <p>The profile you are looking for does not exist.</p>
@@ -123,7 +123,7 @@ export default function ProfilePage() {
   const initial = profile.displayName?.[0] || profile.username?.[0] || '?';
 
   return (
-    <div className="feed-container" style={{ padding: '20px' }}>
+    <div className="profile-container" style={{ padding: '20px' }}>
       <div className="profile-header card">
         {profile.avatar ? (
           <img src={getMediaUrl(profile.avatar, BASE_URL)} alt="Avatar" className="avatar-img avatar--xl" />
